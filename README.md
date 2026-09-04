@@ -131,6 +131,7 @@ et la date de compilation de l'application installée.
 | --- | --- |
 | `v0.1.0` | noyau métier, pointage, calendrier, statistiques, réglages |
 | `v0.2.0` | système d'alertes intelligentes |
+| `v0.2.1` | lisibilité du compteur du jour |
 
 ---
 
