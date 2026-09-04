@@ -2,10 +2,12 @@ node_modules/
 dist/
 dist-ssr/
 coverage/
-*.local
-.DS_Store
+*.tsbuildinfo
+graphify-out/
 .vite/
+*.local
 *.log
+.DS_Store
 .env
 .env.*
 !.env.example

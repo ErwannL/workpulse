@@ -1,0 +1,93 @@
+/* ---------------------------------------------------------------------------
+   WorkPulse — jetons de design
+   Interface sombre, dense, pensée pour un écran de téléphone tenu d'une main.
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+
+  /* Fonds — trois profondeurs suffisent : la page, la carte, l'élément posé. */
+  --bg: #0a0c11;
+  --bg-elevated: #10131a;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-strong: rgba(255, 255, 255, 0.075);
+  --surface-pressed: rgba(255, 255, 255, 0.11);
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+
+  /* Texte */
+  --text: #eef1f7;
+  --text-muted: #9aa3b8;
+  --text-faint: #626c82;
+
+  /* Accents — le vert est la couleur du « tout va bien ». */
+  --mint: #45e3ad;
+  --mint-dim: #1f8f6d;
+  --violet: #8b7bff;
+  --amber: #ffb454;
+  --coral: #ff6b6b;
+  --sky: #58b6ff;
+
+  --accent: var(--mint);
+  --accent-contrast: #04231a;
+
+  /* États du moteur */
+  --state-ahead: var(--mint);
+  --state-ontarget: var(--sky);
+  --state-behind: var(--amber);
+  --state-over: var(--coral);
+  --state-off: var(--violet);
+
+  /* Rayons */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* Espacements */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 44px;
+
+  /* Ombres — discrètes, jamais de halo noir opaque. */
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --glow-accent: 0 0 0 1px rgba(69, 227, 173, 0.28), 0 8px 32px rgba(69, 227, 173, 0.18);
+
+  /* Typographie */
+  --font:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', 'Segoe UI', Inter, Roboto,
+    'Helvetica Neue', sans-serif;
+  --font-num: 'SF Mono', 'Segoe UI Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tabbar-h: 62px;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Le thème clair reste secondaire mais doit être lisible. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f5f8;
+  --bg-elevated: #ffffff;
+  --surface: rgba(10, 12, 17, 0.035);
+  --surface-strong: rgba(10, 12, 17, 0.06);
+  --surface-pressed: rgba(10, 12, 17, 0.1);
+  --hairline: rgba(10, 12, 17, 0.09);
+  --hairline-strong: rgba(10, 12, 17, 0.16);
+  --text: #12151d;
+  --text-muted: #5a6274;
+  --text-faint: #8d94a4;
+  --mint-dim: #0f6a4e;
+  --accent-contrast: #04231a;
+  --shadow-card: 0 1px 2px rgba(16, 20, 30, 0.06), 0 8px 24px rgba(16, 20, 30, 0.07);
+  --shadow-float: 0 12px 40px rgba(16, 20, 30, 0.18);
+}
