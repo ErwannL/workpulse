@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useStore } from '@/state/store';
 import { useRoute } from '@/ui/router';
 import { TabBar } from '@/ui/components/TabBar';
+import { AlertBar } from '@/ui/components/AlertBar';
 import { Dashboard } from '@/ui/screens/Dashboard';
 import { WeekScreen } from '@/ui/screens/WeekScreen';
 import { CalendarScreen } from '@/ui/screens/CalendarScreen';
@@ -34,6 +35,7 @@ export function App() {
       {route === 'calendrier' && <CalendarScreen />}
       {route === 'stats' && <StatsScreen />}
       {route === 'reglages' && <SettingsScreen />}
+      <AlertBar />
       <TabBar route={route} onNavigate={navigate} />
       {toast && <div className="toast">{toast}</div>}
     </div>

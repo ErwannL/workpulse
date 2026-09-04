@@ -948,8 +948,10 @@
 
 .toast {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--sp-4));
   z-index: 50;
   max-width: min(92vw, 420px);
@@ -973,3 +975,61 @@
 .faint { color: var(--text-faint); }
 .small { font-size: 12.5px; }
 .center { text-align: center; }
+
+/* ---------------------------------------------------------------------------
+   Bandeau d'alerte
+   --------------------------------------------------------------------------- */
+
+.alertbar {
+  /* Centrage par les marges, pas par `transform` : l'animation d'entrée
+     utilise déjà `transform` et l'écraserait. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--sp-3));
+  z-index: 40;
+  width: min(calc(100vw - 2 * var(--sp-4)), 528px);
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--bg-elevated) 96%, transparent);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(18px);
+  animation: slide-up 0.26s var(--ease);
+}
+
+.alertbar__head {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+}
+
+.alertbar__emoji {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.alertbar__title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.alertbar__body {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.alertbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.alertbar__actions .btn {
+  flex: 0 0 auto;
+}

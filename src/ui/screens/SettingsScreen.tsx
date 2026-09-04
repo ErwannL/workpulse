@@ -204,6 +204,7 @@ export function SettingsScreen() {
         </Card>
 
         <Card title="Notifications">
+          <SystemNotificationField />
           <Field label="Activer les alertes">
             <Switch
               checked={settings.notifications.enabled}
@@ -333,6 +334,44 @@ export function SettingsScreen() {
         </Sheet>
       )}
     </>
+  );
+}
+
+/**
+ * Les notifications système exigent une autorisation explicite du navigateur.
+ * Sans elle, les alertes restent visibles dans l'application uniquement.
+ */
+function SystemNotificationField() {
+  const supported = typeof Notification !== 'undefined';
+  const [permission, setPermission] = useState(supported ? Notification.permission : 'denied');
+
+  return (
+    <Field
+      label="Notifications système"
+      hint={
+        !supported
+          ? 'Non prises en charge sur cet appareil'
+          : permission === 'granted'
+            ? 'Autorisées'
+            : permission === 'denied'
+              ? 'Refusées — à réactiver dans le navigateur'
+              : 'Les alertes restent visibles dans l’application'
+      }
+    >
+      {supported && permission === 'default' ? (
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={async () => setPermission(await Notification.requestPermission())}
+        >
+          Autoriser
+        </button>
+      ) : (
+        <span className={`chip${permission === 'granted' ? ' chip--accent' : ''}`}>
+          {permission === 'granted' ? 'Actives' : 'Inactives'}
+        </span>
+      )}
+    </Field>
   );
 }
 
