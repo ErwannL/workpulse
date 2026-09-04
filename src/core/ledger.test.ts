@@ -28,7 +28,10 @@ describe('semaine', () => {
 
   it('retire l’objectif d’un jour férié', () => {
     // 14 juillet 2026 : un mardi.
-    const src = makeSource({ now: atTimeOn('2026-07-20', '09:00') });
+    const src = makeSource({
+      now: atTimeOn('2026-07-20', '09:00'),
+      settings: { trackingStart: '2026-07-13' },
+    });
     const week = summarizeWeek(src, '2026-07-13', 0);
     expect(week.planned).toBe(4 * 420);
   });
@@ -120,5 +123,7 @@ describe('statistiques de période', () => {
     expect(stats.absenceDays).toBe(1);
     expect(stats.holidayDays).toBe(0);
     expect(Math.round(stats.workedMinutes)).toBe(10 * 420);
+    // Le mois est entièrement écoulé : objectif total et objectif à ce jour coïncident.
+    expect(stats.plannedMinutesElapsed).toBe(stats.plannedMinutes);
   });
 });

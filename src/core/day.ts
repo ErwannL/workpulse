@@ -151,6 +151,9 @@ export function plannedMinutes(
   day: WorkDay | undefined,
   settings: Settings,
 ): Minutes {
+  // Rien n'est dû avant la première journée suivie : l'application ne
+  // réclame pas des heures pour une période qu'elle n'a jamais observée.
+  if (date < settings.trackingStart) return 0;
   if (day?.plannedOverride !== undefined && day.plannedOverride !== null) {
     return Math.max(0, day.plannedOverride);
   }

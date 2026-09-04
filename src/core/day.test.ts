@@ -72,7 +72,8 @@ describe('computeDay', () => {
 });
 
 describe('plannedMinutes', () => {
-  const s = DEFAULT_SETTINGS;
+  // Suivi démarré très tôt : les dates de test sont toutes postérieures.
+  const s = { ...DEFAULT_SETTINGS, trackingStart: '2026-01-01' };
 
   it('vaut la journée type un jour ouvré', () => {
     expect(plannedMinutes(D, workDay(D), s)).toBe(420);
@@ -96,6 +97,11 @@ describe('plannedMinutes', () => {
 
   it('respecte une demi-journée forcée', () => {
     expect(plannedMinutes(D, workDay(D, { status: 'LEAVE', plannedOverride: 210 }), s)).toBe(210);
+  });
+
+  it('ne réclame rien avant le début du suivi', () => {
+    expect(plannedMinutes('2026-09-04', undefined, { ...s, trackingStart: D })).toBe(0);
+    expect(plannedMinutes(D, undefined, { ...s, trackingStart: D })).toBe(420);
   });
 
   it('compte normalement le télétravail', () => {

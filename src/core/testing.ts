@@ -32,13 +32,17 @@ export function makeSource(opts: {
     list.push(e);
     entriesByDate.set(e.date, list);
   }
+  // Par défaut le suivi démarre au lundi de la première journée du scénario :
+  // sans cela, les semaines antérieures compteraient comme des semaines vides.
+  const earliest = [...(opts.entries ?? []).map((e) => e.date), ...(opts.days ?? []).map((d) => d.date)]
+    .sort()
+    .at(0);
+
   return {
     now: opts.now,
-    // Par défaut le suivi démarre au lundi de la semaine testée : sans cela,
-    // toutes les semaines antérieures compteraient comme des semaines à zéro heure.
     settings: {
       ...DEFAULT_SETTINGS,
-      trackingStart: startOfWeek(todayISO(opts.now)),
+      trackingStart: startOfWeek(earliest ?? todayISO(opts.now)),
       ...opts.settings,
     },
     days: new Map((opts.days ?? []).map((d) => [d.date, d])),

@@ -150,7 +150,10 @@ export interface PeriodStats {
   leaveDays: number;
   holidayDays: number;
   absenceDays: number;
+  /** Objectif de toute la période, jours à venir compris. */
   plannedMinutes: Minutes;
+  /** Objectif des seuls jours déjà écoulés : c'est lui qui fait le solde. */
+  plannedMinutesElapsed: Minutes;
   workedMinutes: Minutes;
   balance: Minutes;
 }
@@ -166,6 +169,7 @@ export function periodStats(src: LedgerSource, from: DateISO, to: DateISO): Peri
     holidayDays: 0,
     absenceDays: 0,
     plannedMinutes: 0,
+    plannedMinutesElapsed: 0,
     workedMinutes: 0,
     balance: 0,
   };
@@ -173,6 +177,7 @@ export function periodStats(src: LedgerSource, from: DateISO, to: DateISO): Peri
   for (const date of rangeDays(from, to)) {
     const d = summarizeDay(src, date);
     stats.plannedMinutes += d.planned;
+    if (d.elapsed) stats.plannedMinutesElapsed += d.planned;
     stats.workedMinutes += d.worked;
     if (d.elapsed) stats.balance += d.balance;
     if (d.planned > 0) stats.plannedDays += 1;

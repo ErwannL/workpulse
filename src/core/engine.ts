@@ -32,6 +32,12 @@ export interface Pulse {
   advanceBeforeToday: Minutes;
   /** Avance ou retard total, journée en cours incluse. */
   totalBalance: Minutes;
+  /**
+   * Solde affiché. Tant que la journée court, les heures qu'il reste à faire
+   * aujourd'hui ne comptent pas comme du retard — on a encore le temps.
+   * Les heures faites en plus, elles, comptent immédiatement.
+   */
+  standing: Minutes;
   /** Ce qu'il faut réellement faire aujourd'hui compte tenu de l'avance. */
   requiredToday: Minutes;
   /** Ce qu'il reste à faire aujourd'hui. */
@@ -102,14 +108,16 @@ export function computePulse(src: LedgerSource, date: DateISO = todayISO(src.now
   }
 
   const state = resolveState({ day, week, phase, remainingToday });
-  const trend = trendOf(totalBalance);
+  const dayOver = phase === 'CLOCKED_OUT' || day.planned === 0;
+  const standing = dayOver ? totalBalance : advanceBeforeToday + Math.max(0, day.balance);
+  const trend = trendOf(standing);
 
   const { emoji, headline, detail } = narrate({
     state,
     day,
     week,
     advanceBeforeToday,
-    totalBalance,
+    totalBalance: standing,
     remainingToday,
     breakVerdict,
   });
@@ -124,6 +132,7 @@ export function computePulse(src: LedgerSource, date: DateISO = todayISO(src.now
     week,
     advanceBeforeToday,
     totalBalance,
+    standing,
     requiredToday,
     remainingToday,
     pendingBreak,

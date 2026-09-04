@@ -1,5 +1,5 @@
 import type { Settings } from './types';
-import { todayISO, startOfWeek } from './time';
+import { todayISO } from './time';
 
 export const DEFAULT_SETTINGS: Settings = {
   userName: 'Erwann',
@@ -23,7 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
     snoozeOptions: [10, 30, 60],
   },
   country: 'FR',
-  trackingStart: startOfWeek(todayISO()),
+  trackingStart: todayISO(),
   initialBalance: 0,
 };
 

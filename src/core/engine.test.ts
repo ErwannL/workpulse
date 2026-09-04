@@ -169,6 +169,39 @@ describe('moteur de décision', () => {
     expect(Math.round(p.week.difference)).toBe(0);
   });
 
+  it('ne compte pas comme du retard les heures encore faisables aujourd’hui', () => {
+    // 09h00, une heure au compteur : il reste 6 h, mais la journée n'est pas finie.
+    const src = makeSource({
+      now: atTimeOn(MON, '09:00'),
+      entries: [entry(MON, 'CLOCK_IN', '08:00')],
+    });
+    const p = computePulse(src);
+    expect(Math.round(p.totalBalance)).toBe(-360);
+    expect(Math.round(p.standing)).toBe(0);
+    expect(p.trend).toBe('ON_TARGET');
+  });
+
+  it('compte immédiatement les heures faites en plus', () => {
+    const src = makeSource({
+      now: atTimeOn(MON, '16:30'),
+      entries: [
+        entry(MON, 'CLOCK_IN', '08:00'),
+        entry(MON, 'BREAK_START', '12:00'),
+        entry(MON, 'BREAK_END', '13:00'),
+      ],
+    });
+    const p = computePulse(src);
+    expect(Math.round(p.standing)).toBe(30);
+    expect(p.trend).toBe('AHEAD');
+  });
+
+  it('une fois la journée pointée, le retard devient réel', () => {
+    const src = makeSource({ now: atTimeOn(MON, '14:00'), entries: fullDay(MON, '13:30') });
+    const p = computePulse(src);
+    expect(Math.round(p.standing)).toBe(Math.round(p.totalBalance));
+    expect(p.trend).toBe('BEHIND');
+  });
+
   it('propose une heure de départ tenant compte de la pause à venir', () => {
     // Arrivée 08:00, aucune pause prise : la journée dépassera 6 h de travail.
     const src = makeSource({ now: atTimeOn(MON, '10:00'), entries: [entry(MON, 'CLOCK_IN', '08:00')] });

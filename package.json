@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "icons": "node scripts/make-icons.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false --pretty"
   },
@@ -19,6 +20,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@types/node": "^26.4.1",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^5.0.0",
