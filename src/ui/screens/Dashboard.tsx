@@ -104,14 +104,19 @@ export function Dashboard() {
                 : 'journée non travaillée'
             }
             badge={
-              day.planned > 0 ? (
+              day.planned === 0 ? undefined : pulse.remainingToday > 0 ? (
+                <>
+                  <span>reste {formatDuration(Math.ceil(pulse.remainingToday))}</span>
+                  <span className="faint">à faire</span>
+                </>
+              ) : (
                 <>
                   <span className={day.balance >= 0 ? 'value-pos' : 'value-neg'}>
                     {formatSigned(day.balance)}
                   </span>
                   <span className="faint">sur la journée</span>
                 </>
-              ) : undefined
+              )
             }
           />
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useStore } from '@/state/store';
 import { carryInFor, summarizeWeek } from '@/core/ledger';
 import type { DaySummary } from '@/core/ledger';
@@ -90,7 +90,9 @@ export function WeekScreen() {
     [store.source, monday],
   );
 
+  // Les barres partagent une échelle commune, avec un repère à la journée type.
   const maxWorked = Math.max(...week.days.map((d) => d.worked), store.settings.dailyMinutes);
+  const targetRatio = store.settings.dailyMinutes / maxWorked;
   const isCurrent = monday === startOfWeek(todayISO(store.now));
 
   return (
@@ -172,7 +174,7 @@ export function WeekScreen() {
         </Card>
 
         <Card title="Répartition">
-          <div className="spark">
+          <div className="spark spark--ruled" style={{ '--target': targetRatio } as CSSProperties}>
             {week.days.map((d) => {
               const height = maxWorked > 0 ? Math.max(3, (d.worked / maxWorked) * 100) : 3;
               const over = d.planned > 0 && d.worked > d.planned;

@@ -1033,3 +1033,24 @@
 .alertbar__actions .btn {
   flex: 0 0 auto;
 }
+
+/*
+   Repère de la journée type dans l'histogramme de la semaine. `--target` est
+   la hauteur visée, en fraction de la zone des barres — d'où le retrait de la
+   bande réservée aux libellés.
+*/
+.spark--ruled {
+  position: relative;
+  --spark-label: 20px;
+}
+
+.spark--ruled::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--spark-label) + var(--target) * (100% - var(--spark-label)));
+  border-top: 1px dashed var(--hairline-strong);
+  pointer-events: none;
+  z-index: 1;
+}
