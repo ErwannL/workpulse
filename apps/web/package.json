@@ -18,7 +18,7 @@
     "android:open": "cap open android"
   },
   "dependencies": {
-    "@capacitor/android": "^7.6.9",
+    "@capacitor/android": "^8.5.1",
     "@capacitor/core": "^7.6.9",
     "@capacitor/local-notifications": "^7.0.7",
     "@workpulse/core": "*",
