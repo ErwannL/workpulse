@@ -25,7 +25,7 @@ WorkPulse n'a pas été ouvert depuis la veille.
 
 1. Ouvrir la [dernière release](https://github.com/ErwannL/workpulse/releases/latest)
    depuis le téléphone.
-2. Télécharger `workpulse-<version>.apk`.
+2. Télécharger `workpulse-<version>.apk` — environ 1,1 Mo.
 3. Ouvrir le fichier téléchargé.
 4. Android demandera d'autoriser l'installation depuis cette source. C'est
    normal pour une application distribuée hors magasin.
@@ -33,10 +33,39 @@ WorkPulse n'a pas été ouvert depuis la veille.
 À la première ouverture, accepter les notifications dans Réglages → Notifications
 si l'on veut les rappels programmés.
 
-> **Le paquet est signé par une clé de débogage.** Il s'installe et fonctionne,
-> mais ne peut pas être publié sur le Play Store en l'état, et Android le
-> signalera comme provenant d'une source inconnue. Voir
-> [publier une version signée](#publier-une-version-signée).
+### Si le téléchargement se bloque à 100 %
+
+Le gestionnaire de téléchargement d'Android affiche parfois la taille complète
+puis tourne indéfiniment : il attend la fermeture d'une connexion que le réseau
+a coupée juste avant la fin. Le fichier reçu est complet, mais jamais remis au
+système.
+
+Trois issues, de la plus simple à la plus sûre :
+
+1. **Recommencer depuis un autre navigateur.** Le gestionnaire ne conserve pas
+   le téléchargement avorté.
+2. **Passer en Wi-Fi**, ou l'inverse. Le paquet fait 1,1 Mo depuis la version
+   0.5.0 — il tenait auparavant 4,7 Mo, et la fin de transfert était le moment
+   le plus fragile.
+3. **Installer par câble**, ce qui ne dépend d'aucun réseau :
+
+   ```bash
+   adb install workpulse-<version>.apk
+   ```
+
+Pour vérifier qu'un fichier téléchargé est intact, comparer son empreinte à
+celle publiée dans les notes de version :
+
+```bash
+sha256sum workpulse-<version>.apk
+```
+
+> **Le paquet est signé par une clé de débogage** tant qu'aucun trousseau n'est
+> configuré. Il s'installe et fonctionne, mais Android le signalera comme
+> provenant d'une source inconnue, et **chaque compilation utilise une clé
+> différente** : une mise à jour par-dessus une version précédente échouera avec
+> `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, et il faudra désinstaller d'abord. Voir
+> [publier une version signée](#publier-une-version-signée), qui règle les deux.
 
 ---
 
@@ -159,8 +188,10 @@ trousseau de clés.
    | `ANDROID_KEY_ALIAS` | `workpulse` |
    | `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
 
-3. Ajouter un bloc `signingConfigs` dans `apps/web/android/app/build.gradle` et
-   remplacer `assembleDebug` par `assembleRelease` dans le workflow.
+C'est tout : le reste est déjà en place. `scripts/sync-android.mjs` écrit un
+bloc `signingConfigs` qui lit ces valeurs dans l'environnement, et le workflow
+les lui passe. Sans le secret `ANDROID_KEYSTORE_BASE64`, la même compilation
+retombe sur la clé de débogage — aucune branche à maintenir en double.
 
 **Ne jamais committer le trousseau ni ses mots de passe.** Le perdre signifie ne
 plus pouvoir mettre à jour l'application installée : Android refuse une mise à
@@ -172,7 +203,7 @@ jour signée par une autre clé.
 
 | Limite | Détail |
 | --- | --- |
-| Signature de débogage | l'installation demande d'autoriser une source inconnue |
+| Signature de débogage | l'installation demande d'autoriser une source inconnue, et chaque compilation change de clé : la mise à jour par-dessus exige une désinstallation |
 | Android seulement | iOS demanderait un Mac et un compte développeur payant |
 | Pas sur le Play Store | distribution par la page des releases |
 | Rappels et économie de batterie | certains constructeurs retardent les rappels d'applications mises en veille ; l'exclusion de l'optimisation de batterie se règle dans Android |

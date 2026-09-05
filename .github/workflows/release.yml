@@ -85,9 +85,12 @@ jobs:
             echo
             echo '### Installer'
             echo
-            echo "- **Android** — téléchargez \`workpulse-${GITHUB_REF_NAME#v}.apk\` depuis un téléphone et ouvrez-le. Android demandera d'autoriser l'installation depuis cette source ; c'est normal pour une application distribuée hors magasin."
-            echo "- **Navigateur** — l'application est déployée automatiquement sur GitHub Pages et s'installe depuis le menu du navigateur (« Ajouter à l'écran d'accueil »)."
-            echo "- **Auto-hébergement** — \`workpulse-web-${GITHUB_REF_NAME}.zip\` contient les fichiers statiques à servir tels quels."
+            apk="workpulse-${GITHUB_REF_NAME#v}.apk"
+            echo "- **Android** — téléchargez \`$apk\` ($(du -h "$apk" | cut -f1)) depuis un téléphone et ouvrez-le. Android demandera d'autoriser l'installation depuis cette source ; c'est normal pour une application distribuée hors magasin."
+            echo "- **Si le téléchargement se bloque à 100 %** — le gestionnaire de téléchargement d'Android reprend parfois un fichier sans jamais le refermer. Réessayez depuis un autre navigateur, ou branchez le téléphone et lancez \`adb install $apk\`."
+            echo "- **Auto-hébergement** — \`workpulse-web-${GITHUB_REF_NAME}.zip\` contient les fichiers statiques à servir tels quels ; l'application s'installe ensuite depuis le menu du navigateur (« Ajouter à l'écran d'accueil »)."
+            echo
+            echo "Empreinte du paquet : \`$(cut -d' ' -f1 "$apk.sha256")\`"
             echo
             if [ -n "$precedent" ]; then
               echo "**Mise à jour depuis $precedent.** L'application affiche ces nouveautés à sa première ouverture."
@@ -107,6 +110,7 @@ jobs:
           body: ${{ steps.notes.outputs.corps }}
           files: |
             workpulse-*.apk
+            workpulse-*.apk.sha256
             workpulse-web-${{ github.ref_name }}.zip
           generate_release_notes: false
           fail_on_unmatched_files: true

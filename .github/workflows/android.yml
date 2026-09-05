@@ -25,6 +25,10 @@ jobs:
   apk:
     name: Compiler le .apk
     runs-on: ubuntu-latest
+    # Au niveau du job : le contexte `secrets` n'est pas lisible depuis la
+    # condition d'une étape, mais `env` l'est.
+    env:
+      TROUSSEAU: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -58,32 +62,65 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('apps/web/android/**/*.gradle*', 'apps/web/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # Un `.apk` de débogage est signé par une clé de test : il s'installe
-      # depuis un téléphone (sources inconnues autorisées) sans exiger de
-      # secret dans le dépôt. Voir docs/android.md pour publier une version
-      # signée avec un vrai trousseau.
+      # Le trousseau de publication, s'il existe, est écrit hors du dépôt et
+      # effacé par le runner avec la machine. Sans lui, la variante release
+      # retombe sur la clé de débogage : le paquet reste installable depuis un
+      # téléphone (sources inconnues autorisées) sans exiger de secret.
+      - name: Déchiffrer le trousseau de publication
+        id: trousseau
+        if: ${{ env.TROUSSEAU != '' }}
+        run: |
+          echo "$TROUSSEAU" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "chemin=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"
+
+      # `assembleRelease` plutôt que `assembleDebug` : R8 divise le `classes.dex`
+      # par quatre. Un paquet de 4,7 Mo n'aboutissait pas toujours sur un réseau
+      # mobile moyen — un téléchargement qui échoue à 99 % est un paquet inutile.
       - name: Assembler le paquet
         working-directory: apps/web/android
+        env:
+          WP_KEYSTORE_PATH: ${{ steps.trousseau.outputs.chemin }}
+          WP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          WP_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          WP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon assembleDebug
+          ./gradlew --no-daemon assembleRelease
 
       - name: Nommer le paquet avec la version
         id: paquet
         run: |
           version=$(node -p "require('./apps/web/package.json').version")
-          source=apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          source=apps/web/android/app/build/outputs/apk/release/app-release.apk
           cible="workpulse-${version}.apk"
           cp "$source" "$cible"
+          sha256sum "$cible" > "$cible.sha256"
           echo "chemin=$cible" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${{ steps.trousseau.outputs.chemin }}" ]; then
+            signature="trousseau de publication"
+          else
+            signature="cle de debogage — voir docs/android.md"
+          fi
+
           echo "### Application Android" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Fichier | Taille |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| --- | ---: |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| \`$cible\` | $(du -h "$cible" | cut -f1) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Fichier | Taille | Signature |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | ---: | --- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| \`$cible\` | $(du -h "$cible" | cut -f1) | $signature |" >> "$GITHUB_STEP_SUMMARY"
+
+      # Un paquet qu'aucune clé ne signe ne s'installe pas. La chaîne doit le
+      # dire ici, pas laisser l'utilisateur le découvrir sur son téléphone.
+      - name: Vérifier que le paquet est signé et installable
+        run: |
+          sdk=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$sdk/apksigner" verify --print-certs "${{ steps.paquet.outputs.chemin }}" > /dev/null
+          echo "Signature vérifiée."
 
       - uses: actions/upload-artifact@v4
         with:
           name: workpulse-apk
-          path: ${{ steps.paquet.outputs.chemin }}
+          path: |
+            ${{ steps.paquet.outputs.chemin }}
+            ${{ steps.paquet.outputs.chemin }}.sha256
           retention-days: 30

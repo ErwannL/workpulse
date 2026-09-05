@@ -42,7 +42,11 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    sourcemap: true,
+    // Les cartes de source pèsent 1,6 Mo — plus du tiers du `.apk`. Sur un
+    // téléphone au réseau moyen, c'est la différence entre un téléchargement
+    // qui aboutit et un qui échoue près de la fin. Le code est public : qui
+    // veut déboguer compile avec WP_SOURCEMAP=1.
+    sourcemap: process.env.WP_SOURCEMAP === '1',
     rollupOptions: {
       output: {
         manualChunks: {
