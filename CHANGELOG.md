@@ -11,15 +11,34 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 
 ## [Non publié]
 
+## [0.5.1] — 2026-09-05
+
 ### Modifié
 
-- Actions GitHub restantes à jour, et `@testing-library/jest-dom` en version 7.
-  Celle-ci déclare `vitest` en pair optionnel : hissée à la racine de l'espace
-  de travail, elle ne l'y voyait pas. `vitest` et son greffon de couverture
-  sont donc déclarés à la racine, en plus de chaque paquet.
-- Dependabot cesse de rouvrir les trois montées majeures différées, décrites
-  dans l'issue #13. La liste saute le jour où l'issue est traitée, et ne masque
-  aucun avis de sécurité.
+- **Les dix pull requests de Dependabot sont soldées.** Onze mises à jour
+  prises — actions GitHub, ESLint 10, commitlint 21, jsdom 30,
+  `dexie-react-hooks` 4, `class-validator` 0.15, `globals` 17,
+  `@testing-library/jest-dom` 7, `@types/supertest` 7 ; cinq différées, avec
+  leur raison, dans l'issue #13.
+- `@testing-library/jest-dom` 7 déclare `vitest` en pair optionnel : hissée à
+  la racine de l'espace de travail, elle ne l'y voyait pas. `vitest` et son
+  greffon de couverture sont donc déclarés à la racine, en plus de chaque
+  paquet.
+- `@types/node` reste volontairement aligné sur la version de Node exécutée :
+  des types en avance décrivent des fonctions que le moteur n'a pas, et le
+  compilateur les accepte sans broncher.
+
+### Corrigé
+
+- **La revue des dépendances échouait sur toutes les pull requests** depuis
+  l'origine du dépôt, y compris celles de Dependabot, pour une raison sans
+  rapport avec leur contenu : le graphe de dépendances de GitHub est un réglage
+  du dépôt, et il est éteint. Un contrôle indisponible n'est pas un contrôle en
+  échec — le job explique comment l'allumer et reprend de lui-même ensuite.
+- **Le serveur du script de captures acceptait une remontée de chemin.**
+  Signalé par CodeQL : comparer le chemin résolu à la racine par `startsWith`
+  laisse passer tout ce qui commence par le même préfixe, et « dist » est aussi
+  un préfixe de « distractor ».
 
 ## [0.5.0] — 2026-09-05
 
