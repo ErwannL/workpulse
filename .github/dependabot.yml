@@ -10,6 +10,29 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: 'chore(deps)'
+    # Trois montées majeures sont volontairement différées, pour les raisons
+    # écrites dans l'issue #13 : NestJS 12 exige TypeScript 6, et Vitest 4
+    # change la mesure de couverture au point de révéler des chemins que la
+    # version précédente comptait à tort comme couverts. Les rouvrir chaque
+    # semaine ne ferait que noyer les mises à jour qui, elles, se prennent.
+    #
+    # Ces lignes sautent le jour où l'issue est traitée. Elles ne masquent
+    # aucun avis de sécurité : Dependabot les remonte indépendamment.
+    ignore:
+      - dependency-name: 'typescript'
+        versions: ['>=6']
+      - dependency-name: 'vitest'
+        versions: ['>=4']
+      - dependency-name: '@vitest/coverage-v8'
+        versions: ['>=4']
+      - dependency-name: 'vite'
+        versions: ['>=8']
+      - dependency-name: '@nestjs/*'
+        versions: ['>=12']
+      - dependency-name: 'prisma'
+        versions: ['>=7']
+      - dependency-name: '@prisma/client'
+        versions: ['>=7']
     groups:
       # Un lot par famille : cinq pull requests séparées pour React seraient
       # ingérables, et les paquets d'une même famille bougent ensemble.
