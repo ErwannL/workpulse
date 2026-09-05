@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   DAY_PATTERN_LABEL,
   formatClockish,
@@ -14,6 +14,7 @@ import { Card, Field, Sheet, Switch } from '@/ui/components/primitives';
 import { ScheduleSheet } from '@/ui/components/ScheduleSheet';
 import { IconChevronRight, IconDownload, IconUpload } from '@/ui/icons';
 import { AdminPanel } from '@/ui/components/AdminPanel';
+import { notifications } from '@/platform/notifications';
 
 const DAY_NAMES = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
@@ -346,31 +347,42 @@ export function SettingsScreen() {
 }
 
 /**
- * Les notifications système exigent une autorisation explicite du navigateur.
- * Sans elle, les alertes restent visibles dans l'application uniquement.
+ * Les notifications système exigent une autorisation explicite. Le message
+ * dit aussi ce que l'autorisation permet réellement : dans un navigateur, une
+ * alerte ne part que si l'application tourne.
  */
 function SystemNotificationField() {
-  const supported = typeof Notification !== 'undefined';
-  const [permission, setPermission] = useState(supported ? Notification.permission : 'denied');
+  const port = notifications();
+  const [permission, setPermission] = useState<'granted' | 'denied' | 'default' | 'inconnu'>(
+    'inconnu',
+  );
+
+  useEffect(() => {
+    let annule = false;
+    void port.permission().then((etat) => {
+      if (!annule) setPermission(etat);
+    });
+    return () => {
+      annule = true;
+    };
+  }, [port]);
+
+  const hint =
+    permission === 'granted'
+      ? port.canSchedule
+        ? 'Rappels programmés, même application fermée'
+        : 'Autorisées — seulement quand l’application est ouverte'
+      : permission === 'denied'
+        ? 'Refusées — à réactiver dans les réglages du système'
+        : 'Les alertes restent visibles dans l’application';
 
   return (
-    <Field
-      label="Notifications système"
-      hint={
-        !supported
-          ? 'Non prises en charge sur cet appareil'
-          : permission === 'granted'
-            ? 'Autorisées'
-            : permission === 'denied'
-              ? 'Refusées — à réactiver dans le navigateur'
-              : 'Les alertes restent visibles dans l’application'
-      }
-    >
-      {supported && permission === 'default' ? (
+    <Field label="Notifications système" hint={hint}>
+      {permission === 'default' ? (
         <button
           type="button"
           className="btn btn--sm"
-          onClick={async () => setPermission(await Notification.requestPermission())}
+          onClick={async () => setPermission(await port.request())}
         >
           Autoriser
         </button>

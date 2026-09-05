@@ -8,9 +8,46 @@ permissions:
   contents: write
 
 jobs:
+  verifier:
+    name: Vérifier avant de publier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Générer le client Prisma
+        run: npm run prisma:generate --workspace @workpulse/api
+      - name: Chaîne complète
+        run: |
+          npm run build:core
+          npm run changelog:check
+          npm run format
+          npm run lint
+          npm run typecheck --workspaces --if-present
+          npm run test
+          npm run build
+      - name: La version doit correspondre au paquet
+        run: |
+          attendue=$(node -p "require('./package.json').version")
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$attendue" != "$tag" ]; then
+            echo "Le tag $GITHUB_REF_NAME ne correspond pas à la version $attendue du paquet." >&2
+            exit 1
+          fi
+      - name: La version doit être documentée
+        run: node scripts/release-notes.mjs "$GITHUB_REF_NAME" > /dev/null
+
+  android:
+    name: Application Android
+    uses: ./.github/workflows/android.yml
+
   publier:
     name: Créer la release GitHub
     runs-on: ubuntu-latest
+    needs: [verifier, android]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,40 +57,56 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Générer le client Prisma
-        run: npm run prisma:generate --workspace @workpulse/api
-      - name: Vérifier avant de publier
+
+      - name: Compiler l'application web
         run: |
           npm run build:core
-          npm run lint
-          npm run test
-          npm run build
+          npm run build --workspace @workpulse/web
+
       - name: Empaqueter l'application web
         run: |
           cd apps/web/dist
-          zip -r ../../../workpulse-web-${{ github.ref_name }}.zip .
+          zip -qr "../../../workpulse-web-${GITHUB_REF_NAME}.zip" .
+
+      - name: Récupérer le paquet Android
+        uses: actions/download-artifact@v4
+        with:
+          name: workpulse-apk
+
       - name: Rédiger les notes de version
         id: notes
         run: |
-          precedent=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
+          precedent=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || echo "")
           {
-            echo 'corps<<FIN'
-            if [ -n "$precedent" ]; then
-              echo "### Changements depuis $precedent"
-              echo
-              git log --no-merges --pretty='- %s' "$precedent..${{ github.ref_name }}"
-            else
-              echo "### Première version"
-              echo
-              git log --no-merges --pretty='- %s'
-            fi
+            echo 'corps<<FIN_DES_NOTES'
+            node scripts/release-notes.mjs "$GITHUB_REF_NAME"
             echo
-            echo "Application web prête à installer : voir la pièce jointe."
-            echo 'FIN'
+            echo '---'
+            echo
+            echo '### Installer'
+            echo
+            echo "- **Android** — téléchargez \`workpulse-${GITHUB_REF_NAME#v}.apk\` depuis un téléphone et ouvrez-le. Android demandera d'autoriser l'installation depuis cette source ; c'est normal pour une application distribuée hors magasin."
+            echo "- **Navigateur** — l'application est déployée automatiquement sur GitHub Pages et s'installe depuis le menu du navigateur (« Ajouter à l'écran d'accueil »)."
+            echo "- **Auto-hébergement** — \`workpulse-web-${GITHUB_REF_NAME}.zip\` contient les fichiers statiques à servir tels quels."
+            echo
+            if [ -n "$precedent" ]; then
+              echo "**Mise à jour depuis $precedent.** L'application affiche ces nouveautés à sa première ouverture."
+              echo
+              echo "<details><summary>Tous les commits depuis $precedent</summary>"
+              echo
+              git log --no-merges --pretty='- %s' "$precedent..${GITHUB_REF_NAME}"
+              echo
+              echo '</details>'
+            fi
+            echo 'FIN_DES_NOTES'
           } >> "$GITHUB_OUTPUT"
+
       - uses: softprops/action-gh-release@v2
         with:
           name: WorkPulse ${{ github.ref_name }}
           body: ${{ steps.notes.outputs.corps }}
-          files: workpulse-web-${{ github.ref_name }}.zip
+          files: |
+            workpulse-*.apk
+            workpulse-web-${{ github.ref_name }}.zip
           generate_release_notes: false
+          fail_on_unmatched_files: true

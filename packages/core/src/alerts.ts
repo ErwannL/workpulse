@@ -1,4 +1,4 @@
-import type { DateISO, Minutes, Settings } from './types.js';
+import type { DateISO, DaySchedule, Minutes, Settings } from './types.js';
 import type { Pulse } from './engine.js';
 import { formatClockish, formatDuration, formatSigned, minutesOfDay, parseHHMM } from './time.js';
 import { hasBreak } from './schedule.js';
@@ -222,4 +222,67 @@ export function shouldNotify(
 ): boolean {
   if (lastNotifiedAt === undefined) return true;
   return now - lastNotifiedAt >= settings.notifications.repeatMinutes * 60_000;
+}
+
+/** Un rappel programmable à l'avance, exprimé en minutes depuis minuit. */
+export interface PlannedAlert {
+  kind: AlertKind;
+  minutesOfDay: Minutes;
+  title: string;
+  body: string;
+}
+
+/**
+ * Rappels d'une journée, connus d'avance à partir de son horaire.
+ *
+ * Les alertes du moteur (« tu peux rentrer », « plafond dépassé ») dépendent du
+ * compteur en temps réel et ne peuvent pas être programmées ; celles-ci, oui.
+ * C'est ce qui permet à l'application installée de prévenir même fermée.
+ */
+export function dailyAlertPlan(schedule: DaySchedule, settings: Settings): PlannedAlert[] {
+  const n = settings.notifications;
+  if (!n.enabled || schedule.minutes === 0) return [];
+
+  const plan: PlannedAlert[] = [];
+  const demiJournee = schedule.pattern === 'MORNING' || schedule.pattern === 'AFTERNOON';
+
+  if (n.dayStart) {
+    plan.push({
+      kind: 'DAY_START',
+      minutesOfDay: parseHHMM(schedule.start),
+      title: '🕗 Tu as commencé à travailler ?',
+      body: demiJournee
+        ? `Ta ${schedule.pattern === 'MORNING' ? 'matinée' : 'après-midi'} commence à ${schedule.start}.`
+        : `Pense à pointer ton arrivée.`,
+    });
+  }
+
+  if (n.lunchStart && schedule.breakStart !== undefined) {
+    plan.push({
+      kind: 'LUNCH_START',
+      minutesOfDay: parseHHMM(schedule.breakStart),
+      title: '🍽️ Pause déjeuner ?',
+      body: 'Pense à couper le compteur.',
+    });
+  }
+
+  if (n.lunchEnd && schedule.breakEnd !== undefined) {
+    plan.push({
+      kind: 'LUNCH_END',
+      minutesOfDay: parseHHMM(schedule.breakEnd),
+      title: '⏱️ Reprise du travail',
+      body: 'La pause est terminée.',
+    });
+  }
+
+  if (n.dayEnd) {
+    plan.push({
+      kind: 'DAY_END',
+      minutesOfDay: parseHHMM(schedule.end),
+      title: '🏠 Fin de journée',
+      body: 'Ouvre WorkPulse pour voir où tu en es.',
+    });
+  }
+
+  return plan.sort((a, b) => a.minutesOfDay - b.minutesOfDay);
 }

@@ -4,3 +4,4 @@ node_modules/
 graphify-out/
 package-lock.json
 *.md
+apps/web/android/

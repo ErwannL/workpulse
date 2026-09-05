@@ -12,6 +12,8 @@ export default tseslint.config(
       '**/coverage/**',
       '**/node_modules/**',
       '**/graphify-out/**',
+      // Projet natif engendré par Capacitor : il n'est pas écrit ici.
+      'apps/web/android/**',
       '**/*.d.ts',
     ],
   },
