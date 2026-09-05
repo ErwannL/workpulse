@@ -1,0 +1,19 @@
+# Normalise les fins de ligne : le dépôt stocke du LF, quel que soit l'OS.
+* text=auto eol=lf
+
+# Fichiers binaires : aucune conversion.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
+*.apk binary
+*.keystore binary
+*.jar binary
+
+# Le wrapper Gradle doit rester exécutable et intact.
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+
+# Marque les fichiers générés pour que GitHub les replie dans les diffs.
+package-lock.json linguist-generated=true
+apps/web/src/generated/** linguist-generated=true
