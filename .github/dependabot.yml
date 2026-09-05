@@ -37,6 +37,11 @@ updates:
       # vrai téléphone, ce que la chaîne ne sait pas faire.
       - dependency-name: '@capacitor/*'
         versions: ['>=8']
+      # Les types de Node suivent la version de Node qu'on exécute, pas la
+      # dernière parue : des types en avance décrivent des fonctions que le
+      # moteur de la chaîne n'a pas, et le compilateur les accepte.
+      - dependency-name: '@types/node'
+        versions: ['>=23']
     groups:
       # Un lot par famille : cinq pull requests séparées pour React seraient
       # ingérables, et les paquets d'une même famille bougent ensemble.
