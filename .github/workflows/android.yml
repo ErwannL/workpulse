@@ -54,7 +54,7 @@ jobs:
       - uses: android-actions/setup-android@v3
 
       - name: Mettre en cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
