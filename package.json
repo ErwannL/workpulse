@@ -41,7 +41,7 @@
     "screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.6.0",
+    "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^19.6.0",
     "@eslint/js": "^9.20.0",
     "eslint": "^9.20.0",
