@@ -18,7 +18,10 @@ export default defineConfig({
     include: ['test/**/*.e2e.test.ts'],
     // Une base réelle est plus lente à démarrer que la valeur par défaut.
     testTimeout: 30_000,
-    hookTimeout: 60_000,
+    // Démarrage de NestJS, migrations et fermeture des connexions : la mise en
+    // place d'un fichier est bien plus lente que ses tests.
+    hookTimeout: 90_000,
+    teardownTimeout: 30_000,
     fileParallelism: false,
   },
 });

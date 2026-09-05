@@ -45,8 +45,10 @@ describeIfDb('API de synchronisation (e2e)', () => {
 
   afterAll(async () => {
     if (userId) await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
-    await prisma.$disconnect();
+    // L'application d'abord : fermer la base sous une requête encore en vol
+    // laisserait la fermeture attendre indéfiniment.
     await app?.close();
+    await prisma.$disconnect();
   });
 
   const auth = () => ({ Authorization: `Bearer ${token}` });

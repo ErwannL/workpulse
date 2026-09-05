@@ -20,6 +20,9 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 
 ### Corrigé
 
+- Le paquet compilé de l'API sortait dans `dist/src/main.js` au lieu de
+  `dist/main.js` : ni le conteneur ni la chaîne ne trouvaient le point
+  d'entrée. Il manquait le `tsconfig.build.json` de NestJS.
 - La sonde de vie répondait sur `/v1/health` au lieu de `/health` : le
   `HEALTHCHECK` du conteneur ne pouvait jamais aboutir, et le conteneur ne se
   serait jamais déclaré sain.

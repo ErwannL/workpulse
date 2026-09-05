@@ -68,8 +68,10 @@ describeIfDb('Intrusion (e2e)', () => {
     for (const { userId } of [alice, bob]) {
       if (userId) await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
     }
-    await prisma.$disconnect();
+    // L'application d'abord : fermer la base sous une requête encore en vol
+    // laisserait la fermeture attendre indéfiniment.
     await app?.close();
+    await prisma.$disconnect();
   });
 
   const auth = (compte: { token: string }) => ({ Authorization: `Bearer ${compte.token}` });
@@ -96,11 +98,13 @@ describeIfDb('Intrusion (e2e)', () => {
     });
 
     it('refuse un schéma d’autorisation détourné', async () => {
+      // Une injection de retour à la ligne est refusée par Node avant même
+      // d'atteindre le réseau : elle ne peut pas être éprouvée ici.
       for (const entete of [
         `Basic ${alice.token}`,
         `Bearer`,
         `Bearer ${alice.token} extra`,
-        `bearer  ${alice.token}\nX-Injected: 1`,
+        `Bearer ${alice.token};X-Injected: 1`,
       ]) {
         await api().get('/v1/sync').set({ Authorization: entete }).expect(401);
       }
