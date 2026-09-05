@@ -20,7 +20,7 @@
   "dependencies": {
     "@capacitor/android": "^7.6.9",
     "@capacitor/core": "^7.6.9",
-    "@capacitor/local-notifications": "^7.0.7",
+    "@capacitor/local-notifications": "^8.3.1",
     "@workpulse/core": "*",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
