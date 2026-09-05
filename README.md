@@ -42,6 +42,36 @@ Aucun de ces deux messages n'est codé séparément. Ils tombent du même calcul
 
 ---
 
+## À quoi ça ressemble
+
+<table>
+<tr>
+<td width="33%"><img src="docs/captures/accueil.png" alt="Tableau de bord : l’avance de la semaine couvre la journée, l’application invite à rentrer"></td>
+<td width="33%"><img src="docs/captures/pause.png" alt="Reprise refusée : il reste quinze minutes de pause légale"></td>
+<td width="33%"><img src="docs/captures/semaine.png" alt="Vue semaine : objectif, réalisé, report entrant et répartition par jour"></td>
+</tr>
+<tr>
+<td align="center"><b>Il décide à ta place</b><br><sub>Il est 16h12, l’avance couvre la journée : rentre.</sub></td>
+<td align="center"><b>Il sait dire non</b><br><sub>Quinze minutes de pause ne font pas une pause légale.</sub></td>
+<td align="center"><b>Il montre le report</b><br><sub>Le solde d’une semaine passe à la suivante.</sub></td>
+</tr>
+<tr>
+<td><img src="docs/captures/calendrier.png" alt="Calendrier du mois avec congés, télétravail et jours fériés"></td>
+<td><img src="docs/captures/statistiques.png" alt="Statistiques du mois : heures travaillées, solde, compteurs de jours"></td>
+<td><img src="docs/captures/reglages.png" alt="Réglages : semaine type réglable jour par jour"></td>
+</tr>
+<tr>
+<td align="center"><b>Calendrier</b><br><sub>Congés, RTT, télétravail, jours fériés français.</sub></td>
+<td align="center"><b>Statistiques</b><br><sub>Semaine, mois, total — sans rien calculer.</sub></td>
+<td align="center"><b>Semaine type</b><br><sub>Chaque jour a sa forme : complète, demi-journée, repos.</sub></td>
+</tr>
+</table>
+
+<sub>Ces images sont engendrées par <code>npm run screenshots</code>, horloge figée
+au vendredi 4 septembre : elles ne peuvent pas dériver de l’application.</sub>
+
+---
+
 ## Ce qu'il sait faire
 
 **Pointer** — arrivée, pause, reprise, départ. Un geste, en bas de l'écran.
@@ -76,11 +106,14 @@ tombe à zéro. Une absence déclarée n'est jamais confondue avec un oubli.
 
 ### Android
 
-Télécharger `workpulse-<version>.apk` depuis la
+Télécharger `workpulse-<version>.apk` (1,1 Mo) depuis la
 [dernière version](https://github.com/ErwannL/workpulse/releases/latest) et
 l'ouvrir depuis le téléphone.
 
 C'est la seule enveloppe où les rappels partent **application fermée**.
+
+Si le téléchargement se fige à 100 %, c'est le gestionnaire d'Android qui attend
+une connexion déjà coupée : [trois façons d'en sortir](docs/android.md#si-le-téléchargement-se-bloque-à-100-).
 
 ### Navigateur
 
