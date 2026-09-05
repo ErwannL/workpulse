@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildWeeks, carryInFor, periodStats, summarizeWeek } from './ledger.js';
 import { atTimeOn, weekDays } from './time.js';
+import { defaultWeekSchedule } from './schedule.js';
 import { fullDay, makeSource, workDay } from './testing.js';
 
 const W1 = '2026-09-07'; // lundi
@@ -172,5 +173,97 @@ describe('statistiques — cas restants', () => {
       settings: { trackingStart: W1 },
     });
     expect(periodStats(src, W1, '2026-09-13').absenceDays).toBe(0);
+  });
+});
+
+describe('mémoire du report', () => {
+  const entriesW1 = weekDays(W1)
+    .slice(0, 5)
+    .flatMap((d) => fullDay(d, '17:00'));
+
+  it('rend le même résultat au deuxième appel', () => {
+    const src = makeSource({
+      now: atTimeOn(W3, '09:00'),
+      settings: { trackingStart: W1 },
+      entries: entriesW1,
+    });
+    const premier = carryInFor(src, W2);
+    expect(carryInFor(src, W2)).toBe(premier);
+    // Cinq journées de 8 h contre 35 h dues : +5 h reportées sur la semaine 2.
+    expect(Math.round(premier)).toBe(300);
+  });
+
+  it('oublie tout dès que les pointages changent', () => {
+    const settings = { trackingStart: W1 };
+    const avant = makeSource({ now: atTimeOn(W3, '09:00'), settings, entries: entriesW1 });
+    // La semaine 2 est restée vide : elle pèse −35 h dans le report.
+    expect(Math.round(carryInFor(avant, W3))).toBe(300 - 2100);
+
+    // Nouvelle collection de pointages : le report doit être recalculé.
+    const apres = makeSource({
+      now: atTimeOn(W3, '09:00'),
+      settings,
+      entries: [
+        ...entriesW1,
+        ...weekDays(W2)
+          .slice(0, 5)
+          .flatMap((d) => fullDay(d, '18:00')),
+      ],
+    });
+    expect(Math.round(carryInFor(apres, W3))).toBe(300 + 5 * 120);
+  });
+
+  it('oublie tout dès qu’une journée est annotée', () => {
+    const settings = { trackingStart: W1 };
+    const avant = makeSource({ now: atTimeOn(W3, '09:00'), settings, entries: entriesW1 });
+    const reference = carryInFor(avant, W2);
+
+    const apres: typeof avant = {
+      ...avant,
+      days: new Map([[W1, workDay(W1, { status: 'LEAVE' })]]),
+    };
+    // Le lundi devient un congé : son objectif disparaît, le solde monte.
+    expect(carryInFor(apres, W2)).toBe(reference + 420);
+  });
+
+  it('oublie tout dès que les réglages changent', () => {
+    const avant = makeSource({
+      now: atTimeOn(W3, '09:00'),
+      settings: { trackingStart: W1 },
+      entries: entriesW1,
+    });
+    const apres: typeof avant = {
+      ...avant,
+      settings: { ...avant.settings, dailyMinutes: 480, week: defaultWeekSchedule(480) },
+    };
+    expect(carryInFor(apres, W2)).toBeLessThan(carryInFor(avant, W2));
+  });
+
+  it('distingue deux semaines cibles', () => {
+    const src = makeSource({
+      now: atTimeOn(W3, '09:00'),
+      settings: { trackingStart: W1 },
+      entries: entriesW1,
+    });
+    expect(carryInFor(src, W1)).toBe(0);
+    expect(Math.round(carryInFor(src, W2))).toBe(300);
+    expect(Math.round(carryInFor(src, W3))).toBe(300 - 2100);
+  });
+
+  it('recalcule au passage de minuit', () => {
+    const entries = weekDays(W1)
+      .slice(0, 5)
+      .flatMap((d) => fullDay(d, '17:00'));
+    const settings = { trackingStart: W1 };
+
+    // Mardi : seuls lundi et mardi sont écoulés.
+    const mardi = makeSource({ now: atTimeOn('2026-09-08', '20:00'), settings, entries });
+    const depuisMardi = summarizeWeek(mardi, W1, carryInFor(mardi, W1)).plannedElapsed;
+
+    // Mercredi : la même source de données, une journée de plus écoulée.
+    const mercredi = { ...mardi, now: atTimeOn('2026-09-09', '20:00') };
+    const depuisMercredi = summarizeWeek(mercredi, W1, carryInFor(mercredi, W1)).plannedElapsed;
+
+    expect(depuisMercredi).toBe(depuisMardi + 420);
   });
 });

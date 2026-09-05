@@ -34,7 +34,9 @@
     "build:core": "npm run build --workspace @workpulse/core",
     "changelog": "node scripts/build-changelog.mjs",
     "changelog:check": "node scripts/build-changelog.mjs --check",
-    "android": "npm run build --workspace @workpulse/web && npm run android:sync --workspace @workpulse/web"
+    "android": "npm run build --workspace @workpulse/web && npm run android:sync --workspace @workpulse/web",
+    "test:perf": "npm run test:perf --workspace @workpulse/core",
+    "test:load": "npm run test:load --workspace @workpulse/api"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",

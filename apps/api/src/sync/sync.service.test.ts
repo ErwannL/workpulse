@@ -202,3 +202,41 @@ describe('push', () => {
     expect(result.conflicts).toBe(3);
   });
 });
+
+describe('réglages hostiles', () => {
+  it('refuse de propager une pollution de prototype', async () => {
+    const hostile = JSON.parse('{"dailyMinutes":420,"__proto__":{"pollue":true}}');
+    await service.push(USER, push({ settings: { payload: hostile, updatedAt: T } }));
+
+    expect(port.settings?.payload).toEqual({ dailyMinutes: 420 });
+    expect(({} as Record<string, unknown>).pollue).toBeUndefined();
+  });
+
+  it('rejette un objet de réglages démesuré', async () => {
+    const large: Record<string, number> = {};
+    for (let i = 0; i < 600; i++) large[`k${i}`] = i;
+    await expect(
+      service.push(USER, push({ settings: { payload: large, updatedAt: T } })),
+    ).rejects.toThrow(/volumineux/);
+  });
+
+  it('rejette un objet de réglages trop imbriqué', async () => {
+    let profond: unknown = { fin: true };
+    for (let i = 0; i < 20; i++) profond = { suivant: profond };
+    await expect(
+      service.push(USER, push({ settings: { payload: profond as never, updatedAt: T } })),
+    ).rejects.toThrow(/profond/);
+  });
+
+  it('accepte des réglages vides', async () => {
+    await service.push(USER, push({ settings: { payload: {}, updatedAt: T } }));
+    expect(port.settings?.payload).toEqual({});
+  });
+
+  it('ne partage aucune référence avec le lot reçu', async () => {
+    const payload = { imbrique: { valeur: 1 } };
+    await service.push(USER, push({ settings: { payload, updatedAt: T } }));
+    payload.imbrique.valeur = 99;
+    expect((port.settings?.payload as typeof payload).imbrique.valeur).toBe(1);
+  });
+});

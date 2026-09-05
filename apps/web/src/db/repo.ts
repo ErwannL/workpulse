@@ -1,5 +1,5 @@
 import type { DateISO, EntryType, Settings, TimeEntry, WorkDay } from '@workpulse/core';
-import { mergeSettings } from '@workpulse/core';
+import { mergeSettings, PayloadRejeteError, sanitizeJson } from '@workpulse/core';
 import { todayISO } from '@workpulse/core';
 import { db, type WorkPulseDB } from './db';
 
@@ -163,13 +163,98 @@ export async function exportBackup(base: WorkPulseDB = db): Promise<Backup> {
   };
 }
 
-export async function importBackup(backup: Backup, base: WorkPulseDB = db): Promise<void> {
-  if (backup?.app !== 'workpulse') throw new Error('Fichier de sauvegarde non reconnu.');
+/**
+ * Restaure une sauvegarde.
+ *
+ * Le fichier vient de l'extérieur : il peut avoir été bricolé, tronqué, ou
+ * fabriqué pour nuire. Il est donc recopié champ par champ plutôt que gobé
+ * tel quel — un objet contenant `__proto__` fusionné dans les réglages
+ * modifierait le prototype d'`Object` pour tout le reste de la session.
+ */
+export async function importBackup(backup: unknown, base: WorkPulseDB = db): Promise<void> {
+  const propre = validateBackup(backup);
   await base.transaction('rw', base.entries, base.days, base.meta, async () => {
     await base.entries.clear();
     await base.days.clear();
-    await base.entries.bulkPut(backup.entries ?? []);
-    await base.days.bulkPut(backup.days ?? []);
-    await base.meta.put({ key: SETTINGS_KEY, value: mergeSettings(backup.settings) });
+    await base.entries.bulkPut(propre.entries);
+    await base.days.bulkPut(propre.days);
+    await base.meta.put({ key: SETTINGS_KEY, value: propre.settings });
   });
+}
+
+const TYPES_POINTAGE = new Set(['CLOCK_IN', 'BREAK_START', 'BREAK_END', 'CLOCK_OUT']);
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export class BackupInvalideError extends Error {}
+
+/** Vérifie et recopie une sauvegarde. Lève dès qu'une ligne est inexploitable. */
+export function validateBackup(brut: unknown): {
+  settings: Settings;
+  days: WorkDay[];
+  entries: TimeEntry[];
+} {
+  if (typeof brut !== 'object' || brut === null) {
+    throw new BackupInvalideError('Fichier de sauvegarde non reconnu.');
+  }
+  const backup = brut as Record<string, unknown>;
+  if (backup.app !== 'workpulse') {
+    throw new BackupInvalideError('Fichier de sauvegarde non reconnu.');
+  }
+
+  let settings: Settings;
+  try {
+    const brutReglages = sanitizeJson(backup.settings ?? {}) as Partial<Settings>;
+    settings = mergeSettings(brutReglages);
+  } catch (erreur) {
+    if (erreur instanceof PayloadRejeteError) {
+      throw new BackupInvalideError(`Réglages illisibles : ${erreur.message}`);
+    }
+    throw erreur;
+  }
+
+  const entries = asArray(backup.entries).map((brute, index) => {
+    const e = brute as Record<string, unknown>;
+    if (typeof e.id !== 'string' || typeof e.date !== 'string' || !ISO_DATE.test(e.date)) {
+      throw new BackupInvalideError(`Pointage ${index + 1} : identifiant ou date invalide.`);
+    }
+    if (typeof e.type !== 'string' || !TYPES_POINTAGE.has(e.type)) {
+      throw new BackupInvalideError(`Pointage ${index + 1} : type inconnu.`);
+    }
+    if (typeof e.at !== 'number' || !Number.isFinite(e.at)) {
+      throw new BackupInvalideError(`Pointage ${index + 1} : horodatage invalide.`);
+    }
+    return {
+      id: e.id,
+      date: e.date,
+      type: e.type as TimeEntry['type'],
+      at: e.at,
+      manual: e.manual === true,
+      ...(typeof e.editedAt === 'number' ? { editedAt: e.editedAt } : {}),
+      ...(typeof e.originalAt === 'number' ? { originalAt: e.originalAt } : {}),
+    } satisfies TimeEntry;
+  });
+
+  const days = asArray(backup.days).map((brute, index) => {
+    const d = brute as Record<string, unknown>;
+    if (typeof d.date !== 'string' || !ISO_DATE.test(d.date)) {
+      throw new BackupInvalideError(`Journée ${index + 1} : date invalide.`);
+    }
+    return {
+      date: d.date,
+      status: (typeof d.status === 'string' ? d.status : 'WORK') as WorkDay['status'],
+      worksOnHoliday: d.worksOnHoliday === true,
+      ...(typeof d.pattern === 'string' ? { pattern: d.pattern as WorkDay['pattern'] } : {}),
+      ...(typeof d.plannedOverride === 'number' ? { plannedOverride: d.plannedOverride } : {}),
+      ...(typeof d.notes === 'string' ? { notes: d.notes.slice(0, 2000) } : {}),
+      updatedAt: typeof d.updatedAt === 'number' ? d.updatedAt : Date.now(),
+    } satisfies WorkDay;
+  });
+
+  return { settings, days, entries };
+}
+
+function asArray(valeur: unknown): unknown[] {
+  if (valeur === undefined || valeur === null) return [];
+  if (!Array.isArray(valeur)) throw new BackupInvalideError('Structure de sauvegarde inattendue.');
+  return valeur;
 }

@@ -15,7 +15,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:dev": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "test:load": "node test/load.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -42,6 +43,7 @@
     "@types/node": "^22.13.0",
     "@types/supertest": "^6.0.2",
     "@vitest/coverage-v8": "^3.2.0",
+    "autocannon": "^8.0.0",
     "prisma": "^6.3.0",
     "supertest": "^7.0.0",
     "typescript": "^5.8.3",

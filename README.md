@@ -1,142 +1,199 @@
+<div align="center">
+
 # WorkPulse
 
-Assistant personnel de temps de travail. Application mobile installable (PWA),
-100 % locale : aucune donnée ne quitte l'appareil.
+**Assistant personnel de temps de travail.**
+Il répond à « puis-je rentrer ? » avant que la question ne se pose.
 
-WorkPulse répond en permanence à deux questions :
+[![CI](https://github.com/ErwannL/workpulse/actions/workflows/ci.yml/badge.svg)](https://github.com/ErwannL/workpulse/actions/workflows/ci.yml)
+[![Robustesse](https://github.com/ErwannL/workpulse/actions/workflows/robustesse.yml/badge.svg)](https://github.com/ErwannL/workpulse/actions/workflows/robustesse.yml)
+[![Android](https://github.com/ErwannL/workpulse/actions/workflows/android.yml/badge.svg)](https://github.com/ErwannL/workpulse/actions/workflows/android.yml)
+[![CodeQL](https://github.com/ErwannL/workpulse/actions/workflows/codeql.yml/badge.svg)](https://github.com/ErwannL/workpulse/actions/workflows/codeql.yml)
 
-> **Est-ce que j'ai assez travaillé aujourd'hui, et est-ce que je peux rentrer ?**
->
-> **Est-ce que je suis en avance ou en retard sur ma semaine ?**
+![domaine 100 %](https://img.shields.io/badge/domaine-100%25%20couvert-45e3ad)
+![tests](https://img.shields.io/badge/tests-392-45e3ad)
+![poids](https://img.shields.io/badge/poids-116%20ko-45e3ad)
+![licence MIT](https://img.shields.io/badge/licence-MIT-8b7bff)
 
----
+[Installer](#installer) · [Documentation](docs/README.md) ·
+[Règles métier](docs/regles-metier.md) · [Journal](CHANGELOG.md)
 
-## Le moteur de décision
-
-Tout part d'une fonction pure, `computePulse`, dans [`src/core/engine.ts`](src/core/engine.ts).
-À chaque tick, elle agrège le temps travaillé du jour, le solde reporté des semaines
-précédentes, les autres journées de la semaine, le calendrier (fériés, congés, absences)
-et l'heure courante, puis produit un état unique :
-
-```
-NOT_STARTED · WORKING · BREAK · DAY_COMPLETE · WEEK_COMPLETE
-OVERTIME_LIMIT_REACHED · ABSENT · HOLIDAY
-```
-
-L'interface et les alertes ne font que **lire** cet état. Aucune règle métier n'est
-recodée dans un écran ou dans une notification : le « il est 14h, tu as déjà fait tes
-heures, rentre chez toi » est une conséquence du calcul, pas un cas particulier.
-
-Le moteur expose aussi les grandeurs dérivées utiles : objectif ajusté du jour,
-temps restant, heure de départ recommandée (pause légale comprise), avance ou
-retard, plafond d'heures supplémentaires.
-
-### Deux subtilités qui changent l'usage
-
-- **Le solde affiché ignore ce qu'il reste le temps de faire aujourd'hui.** À 9 h avec
-  une heure au compteur, l'application n'annonce pas « −6 h » : elle annonce « 0h00 ».
-  Les heures faites *en plus*, elles, comptent immédiatement. C'est le champ `standing`.
-- **Rien n'est dû avant la première journée suivie.** Installer l'application un
-  vendredi ne crée pas quatre jours de dette.
+</div>
 
 ---
 
-## Règles métier
+## Ce que c'est
 
-| Règle | Comportement |
-| --- | --- |
-| Journée type | 7 h, configurable |
-| Semaine type | 35 h, configurable |
-| Solde | `heures travaillées − heures théoriques` |
-| Report | le solde d'une semaine ouvre la suivante |
-| Heures supplémentaires | plafond de +4 h/semaine, alerte au-delà |
-| Jours fériés | calendrier français calculé (Pâques par computus), modifiable jour par jour |
-| Congés, RTT, maladie | temps théorique neutralisé — jamais confondu avec un oubli |
-| Pause déjeuner | minimum de 30 min ; reprendre avant est **refusé** |
-| Corrections | tout pointage peut être ajouté ou modifié, l'heure d'origine est conservée |
+WorkPulse n'est pas une pointeuse. C'est un assistant : **l'utilisateur ne
+calcule rien lui-même**.
 
-### La pause déjeuner
+Un moteur de décision agrège en permanence le temps travaillé, le solde
+reporté, le calendrier et l'heure courante, puis en tire un état unique. Tout
+ce que l'application dit — un message, une couleur, une notification — en
+découle.
 
-Reprendre le travail après 15 minutes de pause n'est pas autorisé. L'application
-refuse l'action et propose autre chose :
+> **16h12** — Tu as fait 35h47 cette semaine. Ton objectif est atteint et tu as
+> +47 min d'avance. Tu peux partir. 🏠
+
+> **17h00** — Tu es à −38 min cette semaine. Il te reste 38 min pour revenir à
+> l'équilibre.
+
+Aucun de ces deux messages n'est codé séparément. Ils tombent du même calcul.
+
+---
+
+## Ce qu'il sait faire
+
+**Pointer** — arrivée, pause, reprise, départ. Un geste, en bas de l'écran.
+
+**Calculer** — temps réellement travaillé, solde du jour, solde de la semaine,
+report d'une semaine sur l'autre, plafond d'heures supplémentaires.
+
+**Décider** — heure de départ conseillée, pause encore due, objectif ajusté par
+l'avance ou le retard accumulé.
+
+**Prévenir** — au bon moment, avec le bon message. À 17 h, si l'avance couvre
+la journée, l'application invite à rentrer plutôt que de réclamer des heures.
+
+**S'adapter** — chaque jour de la semaine a sa forme : journée complète, matin
+seul, après-midi seul, horaires libres ou repos. Un vendredi matin ramène la
+semaine à 31 h 30, sans règle particulière ailleurs.
+
+**Refuser** — reprendre après quinze minutes de pause n'est pas autorisé.
+L'application propose autre chose :
 
 > **Pas si vite 🍿** — Tu as encore droit à 15 min de Netflix.
->
-> **Et si tu allais prendre l'air ?** — 15 min dehors, ça ne se refuse pas.
 
-Le seuil et l'application stricte de la règle sont réglables.
+**Se corriger** — tout pointage s'ajoute ou se modifie ; l'heure d'origine est
+conservée.
 
----
-
-## Alertes
-
-Les horaires de référence (08:00 / 12:00 / 13:00 / 17:00) déclenchent des alertes,
-mais **l'état du compteur a le dernier mot** : à 17 h, si l'avance de la semaine
-couvre la journée, l'application dit de rentrer plutôt que de réclamer des heures.
-Inversement, dès que l'objectif est couvert — même à 14 h — elle le signale.
-
-Chaque alerte propose les mêmes réponses : agir, reporter (10 min / 30 min / 1 h),
-ignorer pour la journée. Les notifications système sont facultatives et demandées
-explicitement ; sans elles, les alertes restent visibles dans l'application.
+**Se taire** — congés, RTT, maladie, jours fériés français : le temps théorique
+tombe à zéro. Une absence déclarée n'est jamais confondue avec un oubli.
 
 ---
 
-## Architecture
+## Installer
 
-```
-src/
-  core/      logique métier pure, sans React ni navigateur
-    time         dates, semaines ISO, formats français
-    holidays     jours fériés français
-    day          automate de pointage → temps travaillé / pauses
-    ledger       objectifs, soldes hebdomadaires, report, statistiques
-    breakRules   pause minimale
-    engine       moteur de décision central
-    alerts       quelle alerte est due, et pourquoi
-  db/        stockage IndexedDB (Dexie), sauvegarde et restauration
-  state/     contexte React, horloge, actions de pointage
-  ui/        écrans et composants
-```
+### Android
 
-Le noyau `core/` ne dépend de rien : c'est lui qui porte les tests.
+Télécharger `workpulse-<version>.apk` depuis la
+[dernière version](https://github.com/ErwannL/workpulse/releases/latest) et
+l'ouvrir depuis le téléphone.
 
-**Stack** — React 19, TypeScript, Vite, Dexie (IndexedDB), vite-plugin-pwa. Aucune
-librairie d'interface : le design system tient dans trois feuilles de style.
+C'est la seule enveloppe où les rappels partent **application fermée**.
 
----
+### Navigateur
 
-## Développement
+Ouvrir l'application déployée, puis « Ajouter à l'écran d'accueil ». Elle
+fonctionne hors ligne.
+
+### Depuis les sources
 
 ```bash
+git clone https://github.com/ErwannL/workpulse.git
+cd workpulse
 npm install
 npm run dev
 ```
-
-| Commande | Effet |
-| --- | --- |
-| `npm run dev` | serveur de développement |
-| `npm run build` | build de production (PWA incluse) |
-| `npm test` | suite de tests |
-| `npm run icons` | régénère les icônes du manifeste |
-
----
-
-## Versions
-
-`main` reste linéaire et propre : chaque version est un tag, et le panneau
-d'administration (Réglages → bas de page) affiche la version, la révision Git
-et la date de compilation de l'application installée.
-
-| Version | Contenu |
-| --- | --- |
-| `v0.1.0` | noyau métier, pointage, calendrier, statistiques, réglages |
-| `v0.2.0` | système d'alertes intelligentes |
-| `v0.2.1` | lisibilité du compteur du jour |
 
 ---
 
 ## Confidentialité
 
-Tout est stocké dans IndexedDB, sur l'appareil. Aucun serveur, aucune requête
-sortante. L'export JSON est la seule façon de faire sortir les données, et il
-est déclenché à la main.
+Tout est stocké sur l'appareil, dans IndexedDB. **Aucune donnée ne part sans une
+action explicite** — activer la synchronisation, ou exporter une sauvegarde.
+
+L'API de synchronisation existe pour qui utilise plusieurs appareils. Elle est
+facultative : sans elle, l'application est complète.
+
+[ADR 0001 — l'appareil est la source de vérité](docs/adr/0001-local-first.md)
+
+---
+
+## Architecture
+
+```mermaid
+graph LR
+    subgraph appareil["Appareil — source de vérité"]
+        UI[PWA React]
+        DB[(IndexedDB)]
+        APK[Android]
+    end
+    CORE["@workpulse/core<br/>domaine pur"]
+    subgraph serveur["Serveur — optionnel"]
+        API[NestJS]
+        PG[(PostgreSQL)]
+    end
+
+    UI --> CORE
+    UI --> DB
+    APK -.enveloppe.-> UI
+    API --> CORE
+    API --> PG
+    UI <-.synchronisation.-> API
+
+    style CORE fill:#1f8f6d,color:#fff
+```
+
+Le domaine ne dépend de rien — ni React, ni base, ni serveur. Une règle ESLint
+l'impose. C'est ce qui rend **impossible** qu'un solde diffère entre le
+téléphone et l'API : les deux importent le même code.
+
+| Paquet | Rôle |
+| --- | --- |
+| `@workpulse/core` | règles, moteur de décision, alertes |
+| `@workpulse/web` | interface, stockage local, enveloppe Android |
+| `@workpulse/api` | synchronisation multi-appareils |
+
+**Stack** — React 19, TypeScript, Vite, Dexie, Capacitor, NestJS, Prisma,
+PostgreSQL, Vitest. Aucune bibliothèque d'interface :
+[pourquoi](docs/adr/0007-pas-de-framework-ui.md).
+
+---
+
+## Qualité
+
+| | |
+| --- | --- |
+| Tests | 392 — 162 domaine, 90 API, 132 application, 8 charge |
+| Couverture domaine et API | **100 %** lignes, branches, fonctions |
+| Couverture application | 98 % lignes |
+| Tests d'intrusion | 23 attaques rejouées contre une vraie base |
+| Tenue en charge | moteur sur 5 ans d'historique, API sur 1 an |
+| Poids | 116 ko compressés, budget imposé à 220 ko |
+
+La chaîne vérifie format, analyse statique, types, tests avec seuils, tests de
+bout en bout sur PostgreSQL, budget de poids, CodeQL et licences des
+dépendances. Elle compile le `.apk` à chaque poussée.
+
+Atteindre 100 % a fait supprimer trois morceaux de code inatteignables et
+découvrir deux défauts réels. Le banc de charge en a trouvé un troisième : un
+départ oublié continuait de courir, et un oubli du lundi valait cinquante
+heures le mercredi.
+
+[Stratégie de test](docs/tests.md) · [Sécurité](docs/securite.md) ·
+[Intégration continue](docs/ci-cd.md)
+
+---
+
+## Documentation
+
+| | |
+| --- | --- |
+| [Règles métier](docs/regles-metier.md) | comment un solde est calculé, et pourquoi |
+| [Moteur de décision](docs/moteur-de-decision.md) | comment l'application décide seule |
+| [Architecture](docs/architecture.md) | ce qui vit où, et ce qui dépend de quoi |
+| [Base de données](docs/base-de-donnees.md) | les deux schémas, et pourquoi ils diffèrent |
+| [API](docs/api.md) | le protocole de synchronisation |
+| [Design system](docs/design-system.md) | pourquoi l'interface ressemble à ça |
+| [Android](docs/android.md) | ce que l'`.apk` apporte vraiment |
+| [Exploitation](docs/exploitation.md) | lancer, déployer, sauvegarder |
+| [Contribuer](docs/contribuer.md) | conventions du dépôt |
+| [Décisions](docs/adr/) | sept ADR, avec leur contexte |
+| [Mémoire du projet](docs/memoire/README.md) | vault Obsidian : le pourquoi, en notes courtes |
+
+---
+
+## Licence
+
+MIT — voir [LICENSE](LICENSE).

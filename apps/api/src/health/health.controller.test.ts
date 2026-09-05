@@ -10,7 +10,7 @@ describe('HealthController', () => {
   });
 
   it('signale une base disponible', async () => {
-    const db = { $queryRawUnsafe: vi.fn().mockResolvedValue([{ '?column?': 1 }]) };
+    const db = { $queryRaw: vi.fn().mockResolvedValue([{ '?column?': 1 }]) };
     const result = await controller.ready(db);
     expect(result.status).toBe('ok');
     expect(result.checks.database).toBe('up');
@@ -18,7 +18,7 @@ describe('HealthController', () => {
   });
 
   it('se déclare dégradé quand la base ne répond pas', async () => {
-    const db = { $queryRawUnsafe: vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) };
+    const db = { $queryRaw: vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) };
     const result = await controller.ready(db);
     expect(result.status).toBe('degraded');
     expect(result.checks.database).toBe('down');

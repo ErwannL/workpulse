@@ -1,0 +1,124 @@
+name: Robustesse
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Une exécution hebdomadaire attrape les dérives lentes.
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  performance:
+    name: Tenue en charge du domaine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Mesurer le moteur sur cinq ans d'historique
+        run: npm run test:perf
+
+  intrusion:
+    name: Tests d'intrusion
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: workpulse
+          POSTGRES_PASSWORD: workpulse
+          POSTGRES_DB: workpulse_secu
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U workpulse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://workpulse:workpulse@localhost:5432/workpulse_secu?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate --workspace @workpulse/api
+      - run: npm run prisma:migrate --workspace @workpulse/api
+      - name: Rejouer les attaques
+        run: npm run test:e2e --workspace @workpulse/api
+
+  charge:
+    name: Charge de l'API
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: workpulse
+          POSTGRES_PASSWORD: workpulse
+          POSTGRES_DB: workpulse_charge
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U workpulse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://workpulse:workpulse@localhost:5432/workpulse_charge?schema=public
+      PORT: '3000'
+      SWAGGER_ENABLED: 'false'
+      # Le contrôle de débit est relevé pour la durée du test : on mesure la
+      # tenue du service, pas l'efficacité de sa propre limite.
+      RATE_LIMIT_PER_MINUTE: '1000000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:core
+      - run: npm run prisma:generate --workspace @workpulse/api
+      - run: npm run prisma:migrate --workspace @workpulse/api
+      - run: npm run build --workspace @workpulse/api
+
+      - name: Démarrer l'API
+        run: |
+          node apps/api/dist/main.js &
+          echo $! > api.pid
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:3000/health > /dev/null; then
+              echo "API prête."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "L'API n'a pas démarré." >&2
+          exit 1
+
+      - name: Injecter la charge
+        run: npm run test:load --workspace @workpulse/api | tee charge.txt
+
+      - name: Publier le résultat
+        if: always()
+        run: |
+          {
+            echo '### Charge de l’API'
+            echo ''
+            echo '```'
+            cat charge.txt || echo 'Aucun résultat.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Arrêter l'API
+        if: always()
+        run: kill "$(cat api.pid)" 2>/dev/null || true

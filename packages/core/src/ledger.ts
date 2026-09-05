@@ -108,11 +108,46 @@ export function summarizeWeek(
 }
 
 /**
+ * Mémoire du report calculé.
+ *
+ * Remonter cinq ans de semaines à chaque battement d'horloge serait du gâchis :
+ * le passé ne bouge que lorsque les données bougent. Le cache est donc indexé
+ * sur l'identité des collections — deux appels avec les mêmes `Map` portent sur
+ * les mêmes données — et purgé automatiquement quand celles-ci sont remplacées.
+ *
+ * La date du jour fait partie de la clé : au passage de minuit, une semaine
+ * cesse d'être en cours et son objectif écoulé change.
+ */
+interface ReportMemorise {
+  days: LedgerSource['days'];
+  settings: LedgerSource['settings'];
+  valeurs: Map<string, Minutes>;
+}
+
+const memoireReport = new WeakMap<LedgerSource['entries'], ReportMemorise>();
+
+/**
  * Rejoue toutes les semaines depuis le début du suivi jusqu'à la semaine
  * demandée pour obtenir le report accumulé. Le solde d'une semaine est
  * toujours reporté sur la suivante (règle 4).
  */
 export function carryInFor(src: LedgerSource, target: DateISO): Minutes {
+  let memoire = memoireReport.get(src.entries);
+  if (memoire === undefined || memoire.days !== src.days || memoire.settings !== src.settings) {
+    memoire = { days: src.days, settings: src.settings, valeurs: new Map() };
+    memoireReport.set(src.entries, memoire);
+  }
+
+  const clef = `${todayISO(src.now)}|${startOfWeek(target)}`;
+  const connu = memoire.valeurs.get(clef);
+  if (connu !== undefined) return connu;
+
+  const calcule = calculerReport(src, target);
+  memoire.valeurs.set(clef, calcule);
+  return calcule;
+}
+
+function calculerReport(src: LedgerSource, target: DateISO): Minutes {
   const targetMonday = startOfWeek(target);
   const firstMonday = startOfWeek(src.settings.trackingStart);
   let carry = src.settings.initialBalance;

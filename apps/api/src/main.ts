@@ -1,33 +1,16 @@
 import 'reflect-metadata';
-import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/http-exception.filter';
+import { configureApp } from './bootstrap';
 import { loadConfiguration } from './config/configuration';
 
 async function bootstrap(): Promise<void> {
   const config = loadConfiguration();
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  app.use(helmet());
-  app.enableCors({
-    origin: config.corsOrigins.length > 0 ? config.corsOrigins : false,
-    credentials: false,
-  });
-  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
-  app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalPipes(
-    new ValidationPipe({
-      // Tout champ non déclaré est rejeté : un client qui invente une colonne
-      // doit échouer bruyamment, pas silencieusement.
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: false },
-    }),
-  );
+  configureApp(app, config);
   app.enableShutdownHooks();
 
   if (config.swaggerEnabled) {
