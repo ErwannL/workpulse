@@ -17,7 +17,7 @@ jobs:
     name: Tenue en charge du domaine
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -45,7 +45,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://workpulse:workpulse@localhost:5432/workpulse_secu?schema=public
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -80,7 +80,7 @@ jobs:
       # tenue du service, pas l'efficacité de sa propre limite.
       RATE_LIMIT_PER_MINUTE: '1000000'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '22'

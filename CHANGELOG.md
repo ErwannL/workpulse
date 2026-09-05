@@ -11,6 +11,16 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 
 ## [Non publié]
 
+### Modifié
+
+- Actions GitHub restantes à jour, et `@testing-library/jest-dom` en version 7.
+  Celle-ci déclare `vitest` en pair optionnel : hissée à la racine de l'espace
+  de travail, elle ne l'y voyait pas. `vitest` et son greffon de couverture
+  sont donc déclarés à la racine, en plus de chaque paquet.
+- Dependabot cesse de rouvrir les trois montées majeures différées, décrites
+  dans l'issue #13. La liste saute le jour où l'issue est traitée, et ne masque
+  aucun avis de sécurité.
+
 ## [0.5.0] — 2026-09-05
 
 ### Ajouté
