@@ -1,7 +1,7 @@
 import type { DateISO, DayPhase, Minutes, Settings, TimeEntry, WorkDay } from './types.js';
 import { OFF_STATUSES } from './types.js';
-import { isoWeekday } from './time.js';
 import { holidayName } from './holidays.js';
+import { scheduleForDate } from './schedule.js';
 
 export interface BreakSpan {
   start: number;
@@ -136,9 +136,9 @@ export function computeDay(date: DateISO, entries: TimeEntry[], now: number): Da
   };
 }
 
-/** Le jour est-il un jour normalement travaillé selon les réglages ? */
-export function isScheduledWorkday(date: DateISO, settings: Settings): boolean {
-  return settings.workDays.includes(isoWeekday(date));
+/** Le jour est-il travaillé selon la semaine type et ses éventuels ajustements ? */
+export function isScheduledWorkday(date: DateISO, settings: Settings, day?: WorkDay): boolean {
+  return scheduleForDate(date, day, settings).minutes > 0;
 }
 
 /**
@@ -156,14 +156,16 @@ export function plannedMinutes(
   if (day?.plannedOverride !== undefined && day.plannedOverride !== null) {
     return Math.max(0, day.plannedOverride);
   }
-  if (!isScheduledWorkday(date, settings)) return 0;
+
+  const schedule = scheduleForDate(date, day, settings);
+  if (schedule.minutes === 0) return 0;
 
   const status = day?.status ?? (holidayName(date) ? 'HOLIDAY' : 'WORK');
   if (status === 'HOLIDAY') {
-    return day?.worksOnHoliday ? settings.dailyMinutes : 0;
+    return day?.worksOnHoliday ? schedule.minutes : 0;
   }
   if (OFF_STATUSES.includes(status)) return 0;
-  return settings.dailyMinutes;
+  return schedule.minutes;
 }
 
 /** Statut effectif d'un jour : celui enregistré, sinon déduit du calendrier. */

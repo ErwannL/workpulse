@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { DateISO, DayStatus, EntryType } from '@workpulse/core';
-import { DAY_STATUS_LABEL } from '@workpulse/core';
+import type { DateISO, DayPattern, DayStatus, EntryType } from '@workpulse/core';
+import { DAY_PATTERN_LABEL, DAY_STATUS_LABEL, scheduleForDate } from '@workpulse/core';
 import { summarizeDay } from '@workpulse/core';
 import { atTimeOn, clock, formatClockish, formatLongDate, formatSigned } from '@workpulse/core';
 import { useStore } from '@/state/context';
@@ -15,6 +15,8 @@ const ENTRY_LABEL: Record<EntryType, string> = {
 };
 
 const ENTRY_ORDER: EntryType[] = ['CLOCK_IN', 'BREAK_START', 'BREAK_END', 'CLOCK_OUT'];
+
+const PATTERN_CHOICES: DayPattern[] = ['FULL', 'MORNING', 'AFTERNOON', 'OFF'];
 
 const STATUS_CHOICES: DayStatus[] = [
   'WORK',
@@ -48,6 +50,14 @@ export function DayEditor({ date, onClose }: { date: DateISO; onClose: () => voi
   );
   const day = store.days.get(date);
   const status = summary.status;
+  const schedule = useMemo(
+    () => scheduleForDate(date, day, store.settings),
+    [date, day, store.settings],
+  );
+  const weekPattern = useMemo(
+    () => scheduleForDate(date, undefined, store.settings).pattern,
+    [date, store.settings],
+  );
 
   const setStatus = async (next: DayStatus) => {
     if (next === 'WORK' && !summary.holiday) {
@@ -64,6 +74,31 @@ export function DayEditor({ date, onClose }: { date: DateISO; onClose: () => voi
       onClose={onClose}
     >
       <div className="stack">
+        <div>
+          <h3 className="card__title">Forme de cette journée</h3>
+          <div className="chip-row">
+            {PATTERN_CHOICES.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`chip${schedule.pattern === p ? ' chip--accent' : ''}`}
+                onClick={() =>
+                  p === weekPattern
+                    ? store.setDay(date, { pattern: undefined })
+                    : store.setDay(date, { pattern: p })
+                }
+              >
+                {DAY_PATTERN_LABEL[p]}
+              </button>
+            ))}
+          </div>
+          <p className="small faint" style={{ marginTop: 8 }}>
+            {day?.pattern === undefined
+              ? 'Suit la semaine type.'
+              : `Exception pour ce jour — la semaine type prévoit « ${DAY_PATTERN_LABEL[weekPattern]} ».`}
+          </p>
+        </div>
+
         <div>
           <h3 className="card__title">Statut de la journée</h3>
           <div className="chip-row">

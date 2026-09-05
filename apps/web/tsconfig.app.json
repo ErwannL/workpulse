@@ -17,6 +17,7 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noUncheckedSideEffectImports": true,
+    "resolveJsonModule": true,
     "types": [
       "vite/client",
       "vite-plugin-pwa/react",

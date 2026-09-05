@@ -1103,3 +1103,252 @@
   pointer-events: none;
   z-index: 1;
 }
+
+/* ---------------------------------------------------------------------------
+   Nouveautés d'une version
+   --------------------------------------------------------------------------- */
+
+.release + .release {
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--hairline);
+}
+
+.release__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.release__section + .release__section {
+  margin-top: var(--sp-3);
+}
+
+.release__title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-2);
+}
+
+.release__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.release__list li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--text-muted);
+}
+
+.release__list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------------------
+   Mouvement
+   ---------------------------------------------------------------------------
+   Le mouvement sert à situer, jamais à décorer : un écran entre par où il
+   arrive, une valeur qui change attire l'œil une fois, et rien ne bouge en
+   continu sauf ce qui est réellement en cours. La règle globale
+   `prefers-reduced-motion` de base.css neutralise tout ceci d'un bloc.
+   --------------------------------------------------------------------------- */
+
+.screen {
+  animation: screen-in 0.32s var(--ease) both;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Les cartes arrivent l'une après l'autre, très légèrement décalées. */
+.app__main > * {
+  animation: card-in 0.36s var(--ease) both;
+}
+
+.app__main > *:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.app__main > *:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.app__main > *:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.app__main > *:nth-child(4) {
+  animation-delay: 0.11s;
+}
+.app__main > *:nth-child(5) {
+  animation-delay: 0.14s;
+}
+.app__main > *:nth-child(n + 6) {
+  animation-delay: 0.16s;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* L'anneau se dessine à l'ouverture, puis suit la valeur en douceur. */
+.ring__value {
+  animation: ring-draw 0.9s var(--ease) both;
+}
+
+@keyframes ring-draw {
+  from {
+    stroke-dashoffset: var(--ring-length, 640);
+  }
+}
+
+/* Le grand chiffre marque le coup quand il change. */
+.ring__big {
+  animation: value-bump 0.4s var(--ease);
+}
+
+@keyframes value-bump {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.55;
+  }
+  60% {
+    transform: scale(1.015);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Point de la frise : bat seulement tant que le compteur tourne. */
+.tl--live .tl__dot {
+  animation: heartbeat 2.4s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px var(--bg),
+      0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px var(--bg),
+      0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+/* Le bandeau d'état change de couleur avec l'état, sans clignoter. */
+.pulse__headline,
+.pulse__detail {
+  animation: fade 0.3s var(--ease);
+}
+
+.pulse__emoji {
+  animation: emoji-in 0.45s var(--ease) both;
+}
+
+@keyframes emoji-in {
+  from {
+    transform: scale(0.6) rotate(-12deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Barre de progression : un reflet lent tant que la journée court. */
+.bar__fill--live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 80%
+  );
+  animation: sheen 2.6s linear infinite;
+}
+
+@keyframes sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Les cellules du calendrier apparaissent par vagues courtes. */
+.cal__grid .cal__cell {
+  animation: cell-in 0.28s var(--ease) both;
+}
+
+/* Chargement : une respiration plutôt qu'un écran vide. */
+.loader {
+  display: grid;
+  place-items: center;
+  gap: var(--sp-3);
+  padding-top: 34vh;
+  color: var(--text-faint);
+  font-size: 13.5px;
+}
+
+.loader__pulse {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--hairline-strong);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cell-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

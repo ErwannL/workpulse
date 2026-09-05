@@ -1,6 +1,7 @@
 import type { DateISO, Minutes, Settings } from './types.js';
 import type { Pulse } from './engine.js';
 import { formatClockish, formatDuration, formatSigned, minutesOfDay, parseHHMM } from './time.js';
+import { hasBreak } from './schedule.js';
 
 export type AlertKind =
   'DAY_START' | 'LUNCH_START' | 'LUNCH_END' | 'DAY_END' | 'CAN_LEAVE' | 'OVERTIME';
@@ -86,27 +87,32 @@ function enabled(kind: AlertKind, settings: Settings): boolean {
  * tient toujours. Les alertes CAN_LEAVE et OVERTIME ne dépendent, elles, que
  * de l'état du compteur : c'est le moteur qui décide, pas l'horloge (règle 7).
  */
-function build(kind: AlertKind, pulse: Pulse, settings: Settings, now: number): Alert | null {
+function build(kind: AlertKind, pulse: Pulse, now: number): Alert | null {
   const minutes = minutesOfDay(now);
   const past = (hhmm: string) => minutes >= parseHHMM(hhmm);
-  const { day, phase, week } = pulse;
+  const { day, phase, week, schedule } = pulse;
   const isWorkingDay = day.planned > 0;
 
   switch (kind) {
     case 'DAY_START':
-      if (!isWorkingDay || phase !== 'NOT_STARTED' || !past(settings.refStart)) return null;
+      if (!isWorkingDay || phase !== 'NOT_STARTED' || !past(schedule.start)) return null;
       return {
         kind,
         emoji: '🕗',
         title: 'Tu as commencé à travailler ?',
-        body: `Aucun pointage d’arrivée depuis ${settings.refStart}.`,
+        body:
+          schedule.pattern === 'AFTERNOON'
+            ? `Ton après-midi commence à ${schedule.start}.`
+            : `Aucun pointage d’arrivée depuis ${schedule.start}.`,
         action: 'CLOCK_IN',
         actionLabel: 'Pointer maintenant',
         snoozable: true,
       };
 
     case 'LUNCH_START':
-      if (phase !== 'WORKING' || day.computation.breaks > 0 || !past(settings.refBreakStart)) {
+      // Une demi-journée n'a pas de coupure : l'alerte n'a pas lieu d'être.
+      if (!hasBreak(schedule)) return null;
+      if (phase !== 'WORKING' || day.computation.breaks > 0 || !past(schedule.breakStart!)) {
         return null;
       }
       return {
@@ -120,7 +126,8 @@ function build(kind: AlertKind, pulse: Pulse, settings: Settings, now: number): 
       };
 
     case 'LUNCH_END':
-      if (phase !== 'BREAK' || !past(settings.refBreakEnd)) return null;
+      if (!hasBreak(schedule)) return null;
+      if (phase !== 'BREAK' || !past(schedule.breakEnd!)) return null;
       if (pulse.breakVerdict && !pulse.breakVerdict.allowed) return null;
       return {
         kind,
@@ -133,7 +140,7 @@ function build(kind: AlertKind, pulse: Pulse, settings: Settings, now: number): 
       };
 
     case 'DAY_END':
-      if ((phase !== 'WORKING' && phase !== 'BREAK') || !past(settings.refEnd)) return null;
+      if ((phase !== 'WORKING' && phase !== 'BREAK') || !past(schedule.end)) return null;
       return pulse.canLeave
         ? {
             kind,
@@ -159,7 +166,7 @@ function build(kind: AlertKind, pulse: Pulse, settings: Settings, now: number): 
 
     case 'CAN_LEAVE':
       // L'objectif est couvert avant l'heure habituelle : on le dit tout de suite.
-      if (phase !== 'WORKING' || !pulse.canLeave || past(settings.refEnd)) return null;
+      if (phase !== 'WORKING' || !pulse.canLeave || past(schedule.end)) return null;
       return {
         kind,
         emoji: '🏠',
@@ -197,7 +204,7 @@ export function dueAlert(
     if (memory.dismissed.includes(kind)) continue;
     const until = memory.snoozedUntil[kind];
     if (until !== undefined && now < until) continue;
-    const alert = build(kind, pulse, settings, now);
+    const alert = build(kind, pulse, now);
     if (alert) return alert;
   }
   return null;

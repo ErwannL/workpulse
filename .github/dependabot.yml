@@ -1,0 +1,39 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Paris
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      # Un lot par famille : cinq pull requests séparées pour React seraient
+      # ingérables, et les paquets d'une même famille bougent ensemble.
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      nestjs:
+        patterns: ['@nestjs/*']
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      outillage:
+        patterns:
+          [
+            'vite*',
+            'vitest',
+            '@vitest/*',
+            'eslint*',
+            'typescript*',
+            'prettier',
+            '@testing-library/*',
+          ]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'chore(ci)'

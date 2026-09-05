@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Une nouvelle poussée sur une branche annule la vérification précédente.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  qualite:
+    name: Format, lint et types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Générer le client Prisma
+        run: npm run prisma:generate --workspace @workpulse/api
+      - name: Compiler le domaine partagé
+        run: npm run build:core
+      - name: Vérifier le formatage
+        run: npm run format
+      - name: Analyser le code
+        run: npm run lint
+      - name: Vérifier les types
+        run: npm run typecheck --workspaces --if-present
+
+  tests:
+    name: Tests — ${{ matrix.paquet }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - paquet: core
+            workspace: '@workpulse/core'
+            couverture: packages/core/coverage
+          - paquet: web
+            workspace: '@workpulse/web'
+            couverture: apps/web/coverage
+          - paquet: api
+            workspace: '@workpulse/api'
+            couverture: apps/api/coverage
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Générer le client Prisma
+        if: matrix.paquet == 'api'
+        run: npm run prisma:generate --workspace @workpulse/api
+      - name: Tests et couverture
+        run: npm run test:cov --workspace ${{ matrix.workspace }}
+      - name: Publier le rapport de couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: couverture-${{ matrix.paquet }}
+          path: ${{ matrix.couverture }}
+          retention-days: 14
+      - name: Résumer la couverture
+        if: always()
+        run: |
+          fichier="${{ matrix.couverture }}/coverage-summary.json"
+          if [ -f "$fichier" ]; then
+            node -e '
+              const s = require("./" + process.argv[1]).total;
+              const ligne = (n, v) => `| ${n} | ${v.pct}% | ${v.covered}/${v.total} |`;
+              console.log(`### Couverture — ${process.argv[2]}\n`);
+              console.log("| Mesure | Taux | Couvert |");
+              console.log("| --- | ---: | ---: |");
+              console.log(ligne("Lignes", s.lines));
+              console.log(ligne("Branches", s.branches));
+              console.log(ligne("Fonctions", s.functions));
+              console.log(ligne("Instructions", s.statements));
+            ' "$fichier" "${{ matrix.paquet }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  e2e:
+    name: Tests de bout en bout (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: workpulse
+          POSTGRES_PASSWORD: workpulse
+          POSTGRES_DB: workpulse_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U workpulse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://workpulse:workpulse@localhost:5432/workpulse_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Générer le client Prisma
+        run: npm run prisma:generate --workspace @workpulse/api
+      - name: Appliquer les migrations
+        run: npm run prisma:migrate --workspace @workpulse/api
+      - name: Lancer les tests de bout en bout
+        run: npm run test:e2e --workspace @workpulse/api
+
+  build:
+    name: Compilation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Générer le client Prisma
+        run: npm run prisma:generate --workspace @workpulse/api
+      - name: Compiler les trois paquets
+        run: npm run build
+      - name: Vérifier le budget de poids
+        run: node scripts/check-bundle-budget.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+          retention-days: 7
+
+  verdict:
+    name: Verdict
+    runs-on: ubuntu-latest
+    needs: [qualite, tests, e2e, build]
+    if: always()
+    steps:
+      - name: Échouer si une étape a échoué
+        run: |
+          if echo '${{ join(needs.*.result, ' ') }}' | grep -qE 'failure|cancelled'; then
+            echo "Une étape de la chaîne a échoué." >&2
+            exit 1
+          fi
+          echo "Chaîne complète au vert."

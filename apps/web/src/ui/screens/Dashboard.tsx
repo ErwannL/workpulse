@@ -99,9 +99,13 @@ export function Dashboard() {
             color={tone}
             big={formatClockish(day.worked)}
             label={
-              day.planned > 0
-                ? `sur ${formatClockish(day.planned)} aujourd’hui`
-                : 'journée non travaillée'
+              day.planned === 0
+                ? 'journée non travaillée'
+                : pulse.schedule.pattern === 'MORNING'
+                  ? `sur ${formatClockish(day.planned)} ce matin`
+                  : pulse.schedule.pattern === 'AFTERNOON'
+                    ? `sur ${formatClockish(day.planned)} cet après-midi`
+                    : `sur ${formatClockish(day.planned)} aujourd’hui`
             }
             badge={
               day.planned === 0 ? undefined : pulse.remainingToday > 0 ? (
@@ -274,7 +278,12 @@ export function Dashboard() {
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <ProgressBar value={week.worked} target={week.planned} cap={week.overtimeCap} />
+            <ProgressBar
+              value={week.worked}
+              target={week.planned}
+              cap={week.overtimeCap}
+              live={phase === 'WORKING'}
+            />
             <div className="bar__legend">
               <span>{formatClockish(week.worked)}</span>
               <span className="faint">

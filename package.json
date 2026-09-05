@@ -1,7 +1,7 @@
 {
   "name": "workpulse",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Assistant personnel de temps de travail — monorepo",
   "license": "MIT",
   "author": "Erwann Laplante",
@@ -29,9 +29,11 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "typecheck": "npm run build:core && npm run typecheck --workspaces --if-present",
-    "verify": "npm run format && npm run lint && npm run typecheck && npm run test:cov",
+    "verify": "npm run changelog:check && npm run format && npm run lint && npm run typecheck && npm run test:cov",
     "graph": "graphify update . && graphify export callflow-html",
-    "build:core": "npm run build --workspace @workpulse/core"
+    "build:core": "npm run build --workspace @workpulse/core",
+    "changelog": "node scripts/build-changelog.mjs",
+    "changelog:check": "node scripts/build-changelog.mjs --check"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",

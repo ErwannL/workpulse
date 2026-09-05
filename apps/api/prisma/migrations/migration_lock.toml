@@ -1,0 +1,2 @@
+# Ce fichier fige le moteur de base de données visé par les migrations.
+provider = "postgresql"

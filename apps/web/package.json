@@ -1,6 +1,6 @@
 {
   "name": "@workpulse/web",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "WorkPulse — application mobile installable (PWA)",
   "type": "module",
@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "prebuild": "node ../../scripts/build-changelog.mjs"
   },
   "dependencies": {
     "@workpulse/core": "*",

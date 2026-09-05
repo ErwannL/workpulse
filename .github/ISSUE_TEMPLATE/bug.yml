@@ -1,0 +1,41 @@
+name: Anomalie
+description: Un comportement qui ne correspond pas aux règles du produit
+labels: [anomalie]
+body:
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Ce que l'application aurait dû faire
+      description: Renvoyez si possible à la règle concernée dans docs/regles-metier.md
+    validations:
+      required: true
+  - type: textarea
+    id: constate
+    attributes:
+      label: Ce qu'elle a fait
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Comment le reproduire
+      placeholder: |
+        1. Pointer l'arrivée à 08:00
+        2. Commencer la pause à 12:00
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Visible dans Réglages, panneau d'administration
+    validations:
+      required: true
+  - type: dropdown
+    id: contexte
+    attributes:
+      label: Contexte
+      options: [Application installée, Navigateur mobile, Navigateur bureau]
+    validations:
+      required: true

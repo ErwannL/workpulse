@@ -1,0 +1,7 @@
+# Toute modification passe par le propriétaire du projet.
+*                       @ErwannL
+
+# Le domaine porte les règles métier : relecture systématique.
+/packages/core/         @ErwannL
+/docs/                  @ErwannL
+/.github/               @ErwannL

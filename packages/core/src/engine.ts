@@ -9,6 +9,8 @@ import {
   type WeekSummary,
 } from './ledger.js';
 import { clock, formatClockish, formatDuration, formatSigned, todayISO } from './time.js';
+import { hasBreak, scheduleForDate } from './schedule.js';
+import type { DaySchedule } from './types.js';
 
 /** Tolérance autour de l'objectif avant de parler d'avance ou de retard. */
 export const TREND_TOLERANCE: Minutes = 10;
@@ -37,6 +39,8 @@ export interface Pulse {
   remainingToday: Minutes;
   /** Pause minimale restant à prendre avant de pouvoir partir. */
   pendingBreak: Minutes;
+  /** Horaire théorique du jour : forme, durée due et créneaux de référence. */
+  schedule: DaySchedule;
   canLeave: boolean;
   /** Heure de départ recommandée, avance comprise. */
   leaveAt: number | null;
@@ -76,11 +80,14 @@ export function computePulse(src: LedgerSource, date: DateISO = todayISO(src.now
     day.planned === 0 ? 0 : Math.min(maxToday, Math.max(0, day.planned - advanceBeforeToday));
   const remainingToday = Math.max(0, requiredToday - day.worked);
 
-  // Une longue journée impose la pause minimale : elle décale l'heure de départ.
-  const willExceedBreakThreshold = day.worked + remainingToday > 6 * 60;
-  const pendingBreak = willExceedBreakThreshold
-    ? Math.max(0, settings.minBreakMinutes - day.computation.breaks)
-    : 0;
+  // La pause minimale ne s'impose qu'aux journées qui en comportent une :
+  // une demi-journée de trois heures et demie n'a rien à couper.
+  const schedule = scheduleForDate(date, day.day, settings);
+  const longEnough = day.worked + remainingToday > 6 * 60;
+  const pendingBreak =
+    hasBreak(schedule) && longEnough
+      ? Math.max(0, settings.minBreakMinutes - day.computation.breaks)
+      : 0;
 
   const phase = day.computation.phase;
   const breakVerdict =
@@ -129,6 +136,7 @@ export function computePulse(src: LedgerSource, date: DateISO = todayISO(src.now
     requiredToday,
     remainingToday,
     pendingBreak,
+    schedule,
     canLeave,
     leaveAt,
     leaveAtDayTarget,

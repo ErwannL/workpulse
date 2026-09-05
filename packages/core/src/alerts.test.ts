@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { dismiss, dueAlert, emptyMemory, memoryForDay, shouldNotify, snooze } from './alerts.js';
 import { computePulse } from './engine.js';
-import { DEFAULT_SETTINGS } from './settings.js';
+import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
+import { scheduleFromPattern } from './schedule.js';
 import { atTimeOn, weekDays } from './time.js';
 import { entry, fullDay, makeSource, workDay } from './testing.js';
 
 const MON = '2026-09-07';
+const TUE = '2026-09-08';
+const WED = '2026-09-09';
 const FRI = '2026-09-11';
 const S = DEFAULT_SETTINGS;
 
@@ -159,5 +162,57 @@ describe('alertes — formulation de fin de journée', () => {
     const alert = dueAlert(pulseAt('17:00', entries), S, emptyMemory(MON));
     expect(alert?.kind).toBe('DAY_END');
     expect(alert?.body).toMatch(/aujourd’hui, solde/);
+  });
+});
+
+describe('alertes et demi-journées', () => {
+  const morningFriday = () => {
+    const settings = mergeSettings({ trackingStart: MON });
+    settings.week[5] = scheduleFromPattern('MORNING', 420);
+    return settings;
+  };
+
+  function pulseWith(
+    settings: ReturnType<typeof morningFriday>,
+    hhmm: string,
+    entries: never[],
+    date = FRI,
+  ) {
+    return computePulse(makeSource({ now: atTimeOn(date, hhmm), settings, entries }));
+  }
+
+  it('ne propose jamais la pause déjeuner sur une matinée', () => {
+    const settings = morningFriday();
+    const entries = [entry(FRI, 'CLOCK_IN', '08:00')] as never;
+    const alert = dueAlert(pulseWith(settings, '12:30', entries), settings, emptyMemory(FRI));
+    expect(alert?.kind).not.toBe('LUNCH_START');
+  });
+
+  it('réclame l’arrivée à l’heure de la demi-journée, pas à 08:00', () => {
+    const settings = mergeSettings({ trackingStart: MON });
+    settings.week[1] = scheduleFromPattern('AFTERNOON', 420);
+
+    expect(
+      dueAlert(pulseWith(settings, '09:00', [] as never, MON), settings, emptyMemory(MON)),
+    ).toBeNull();
+
+    const alert = dueAlert(
+      pulseWith(settings, '13:10', [] as never, MON),
+      settings,
+      emptyMemory(MON),
+    );
+    expect(alert?.kind).toBe('DAY_START');
+    expect(alert?.body).toContain('13:00');
+  });
+
+  it('annonce la fin de journée à midi pour une matinée', () => {
+    const settings = morningFriday();
+    const entries = [
+      ...[MON, TUE, WED, '2026-09-10'].flatMap((d) => fullDay(d, '16:00')),
+      entry(FRI, 'CLOCK_IN', '08:00'),
+    ] as never;
+    const alert = dueAlert(pulseWith(settings, '12:00', entries), settings, emptyMemory(FRI));
+    expect(alert?.kind).toBe('DAY_END');
+    expect(alert?.emoji).toBe('🏠');
   });
 });
