@@ -32,6 +32,10 @@ jobs:
         run: npm run prisma:generate --workspace @workpulse/api
       - name: Compiler le domaine partagé
         run: npm run build:core
+      - name: Vérifier que le journal embarqué est à jour
+        run: npm run changelog:check
+      - name: Vérifier que les migrations ne contiennent que du SQL
+        run: npm run check:migrations
       - name: Vérifier le formatage
         run: npm run format
       - name: Analyser le code

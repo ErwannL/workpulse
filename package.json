@@ -29,14 +29,15 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "typecheck": "npm run build:core && npm run typecheck --workspaces --if-present",
-    "verify": "npm run changelog:check && npm run format && npm run lint && npm run typecheck && npm run test:cov",
+    "verify": "npm run changelog:check && npm run check:migrations && npm run format && npm run lint && npm run typecheck && npm run test:cov",
     "graph": "graphify update . && graphify export callflow-html",
     "build:core": "npm run build --workspace @workpulse/core",
     "changelog": "node scripts/build-changelog.mjs",
     "changelog:check": "node scripts/build-changelog.mjs --check",
     "android": "npm run build --workspace @workpulse/web && npm run android:sync --workspace @workpulse/web",
     "test:perf": "npm run test:perf --workspace @workpulse/core",
-    "test:load": "npm run test:load --workspace @workpulse/api"
+    "test:load": "npm run test:load --workspace @workpulse/api",
+    "check:migrations": "node scripts/check-migrations.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
