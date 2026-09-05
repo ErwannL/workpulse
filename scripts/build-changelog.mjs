@@ -69,7 +69,7 @@ const versions = parseChangelog(readFileSync(SOURCE, 'utf-8'));
 const contenu = `${JSON.stringify(versions, null, 2)}\n`;
 
 if (process.argv.includes('--check')) {
-  let actuel = '';
+  let actuel;
   try {
     actuel = readFileSync(SORTIE, 'utf-8');
   } catch {

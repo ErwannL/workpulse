@@ -32,7 +32,7 @@ jobs:
             echo "disponible=non" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/dependency-review-action@v5
         if: steps.graphe.outputs.disponible == 'oui'
         with:
           fail-on-severity: moderate
