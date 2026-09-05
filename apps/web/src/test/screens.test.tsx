@@ -535,3 +535,57 @@ describe('nouveautés', () => {
     expect(localStorage.getItem('workpulse.derniereVersionVue')).toBe('9.9.9');
   });
 });
+
+describe('bandeau d’alerte et contenu', () => {
+  it('réserve sa place pour ne pas masquer le bouton de pointage', async () => {
+    await at('08:20');
+    await renderApp();
+    await screen.findByRole('status');
+
+    await waitFor(() =>
+      expect(document.documentElement.style.getPropertyValue('--alertbar-h')).not.toBe(''),
+    );
+  });
+
+  it('rend la place quand l’alerte disparaît', async () => {
+    await at('08:20');
+    await renderApp();
+
+    const alert = await screen.findByRole('status');
+    await user.click(within(alert).getByRole('button', { name: 'Ignorer' }));
+
+    await waitFor(() =>
+      expect(document.documentElement.style.getPropertyValue('--alertbar-h')).toBe(''),
+    );
+  });
+});
+
+describe('badge de l’anneau', () => {
+  it('annonce le temps restant tant qu’il y en a', async () => {
+    await addEntry({ date: MON, type: 'CLOCK_IN', at: atTimeOn(MON, '08:00') });
+    await at('10:00');
+    await renderApp();
+    // « reste 5h00 » figure aussi dans le compteur de la semaine.
+    expect((await main().findAllByText(/reste 5h00/)).length).toBeGreaterThan(0);
+    expect(main().getByText(/à faire/)).toBeInTheDocument();
+  });
+
+  it('parle d’avance, pas de retard, quand elle couvre la journée', async () => {
+    // Lundi à jeudi à 9 h : quatre heures d'avance.
+    for (const jour of [MON, TUE, '2026-09-09', '2026-09-10']) {
+      for (const [type, hhmm] of [
+        ['CLOCK_IN', '08:00'],
+        ['CLOCK_OUT', '17:00'],
+      ] as const) {
+        await addEntry({ date: jour, type, at: atTimeOn(jour, hhmm) });
+      }
+    }
+    await addEntry({ date: '2026-09-11', type: 'CLOCK_IN', at: atTimeOn('2026-09-11', '08:00') });
+
+    await at('11:00', '2026-09-11');
+    await renderApp();
+
+    expect(await main().findByText(/couvert par ton avance/)).toBeInTheDocument();
+    expect(main().queryByText(/reste \d/)).not.toBeInTheDocument();
+  });
+});

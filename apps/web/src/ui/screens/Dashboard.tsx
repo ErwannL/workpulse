@@ -113,11 +113,16 @@ export function Dashboard() {
                   <span>reste {formatDuration(Math.ceil(pulse.remainingToday))}</span>
                   <span className="faint">à faire</span>
                 </>
+              ) : day.balance < 0 ? (
+                // Rien à faire, mais moins que le nominal : c'est l'avance qui
+                // paie. L'annoncer comme un retard contredirait « tu peux partir ».
+                <>
+                  <span className="value-pos">{formatSigned(day.balance)}</span>
+                  <span className="faint">couvert par ton avance</span>
+                </>
               ) : (
                 <>
-                  <span className={day.balance >= 0 ? 'value-pos' : 'value-neg'}>
-                    {formatSigned(day.balance)}
-                  </span>
+                  <span className="value-pos">{formatSigned(day.balance)}</span>
                   <span className="faint">sur la journée</span>
                 </>
               )

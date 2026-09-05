@@ -14,7 +14,11 @@
 
 .app__main {
   flex: 1;
-  padding: 0 var(--sp-4) calc(var(--tabbar-h) + var(--safe-bottom) + var(--sp-7));
+  /* `--alertbar-h` est publiée par le bandeau d'alerte quand il s'affiche :
+     sans cette réserve, il recouvrirait le bouton qu'il demande d'actionner. */
+  padding: 0 var(--sp-4)
+    calc(var(--tabbar-h) + var(--safe-bottom) + var(--alertbar-h, 0px) + var(--sp-7));
+  transition: padding-bottom 0.24s var(--ease);
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
@@ -525,7 +529,9 @@
 
 .tl {
   display: grid;
-  grid-template-columns: 56px 18px 1fr auto;
+  /* La première colonne accueille soit une heure, soit un champ de saisie :
+     elle est dimensionnée pour le plus large des deux. */
+  grid-template-columns: minmax(56px, auto) 18px 1fr auto;
   align-items: center;
   gap: var(--sp-3);
   padding: 7px 0;
@@ -1041,10 +1047,11 @@
   width: min(calc(100vw - 2 * var(--sp-4)), 528px);
   padding: var(--sp-4);
   border-radius: var(--r-lg);
-  background: color-mix(in srgb, var(--bg-elevated) 96%, transparent);
+  /* Opaque, sans compter sur le flou d'arrière-plan : le message doit rester
+     lisible même là où `backdrop-filter` n'est pas appliqué. */
+  background: var(--bg-elevated);
   border: 1px solid var(--hairline-strong);
   box-shadow: var(--shadow-float);
-  backdrop-filter: blur(18px);
   animation: slide-up 0.26s var(--ease);
 }
 

@@ -160,7 +160,7 @@ export function DayEditor({ date, onClose }: { date: DateISO; onClose: () => voi
               <div className="tl" key={e.id}>
                 <input
                   className="input"
-                  style={{ minWidth: 0, width: 74, textAlign: 'center' }}
+                  style={{ minWidth: 0, width: 104, textAlign: 'center', padding: '9px 6px' }}
                   type="time"
                   value={clock(e.at)}
                   onChange={(ev) => {

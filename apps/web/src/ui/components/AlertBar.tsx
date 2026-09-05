@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatDuration } from '@workpulse/core';
 import { useAlerts } from '@/state/useAlerts';
 
@@ -10,11 +10,39 @@ import { useAlerts } from '@/state/useAlerts';
 export function AlertBar() {
   const { alert, accept, snoozeFor, ignore, snoozeOptions } = useAlerts();
   const [refusal, setRefusal] = useState<string | null>(null);
+  const bandeau = useRef<HTMLDivElement>(null);
+
+  /*
+   * Le bandeau flotte au-dessus du contenu : sans réserver sa place, il
+   * masquerait le bouton de pointage, c'est-à-dire précisément ce qu'il
+   * demande d'actionner. Sa hauteur est mesurée plutôt que devinée, pour
+   * rester juste quel que soit le nombre de lignes du message.
+   */
+  useEffect(() => {
+    const element = bandeau.current;
+    const racine = document.documentElement;
+    if (element === null) {
+      racine.style.removeProperty('--alertbar-h');
+      return;
+    }
+
+    const publier = () => {
+      racine.style.setProperty('--alertbar-h', `${element.offsetHeight}px`);
+    };
+    publier();
+
+    const observateur = new ResizeObserver(publier);
+    observateur.observe(element);
+    return () => {
+      observateur.disconnect();
+      racine.style.removeProperty('--alertbar-h');
+    };
+  }, [alert]);
 
   if (!alert) return null;
 
   return (
-    <div className="alertbar" role="status">
+    <div className="alertbar" role="status" ref={bandeau}>
       <div className="alertbar__head">
         <span className="alertbar__emoji">{alert.emoji}</span>
         <div>
