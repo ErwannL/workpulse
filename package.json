@@ -1,7 +1,7 @@
 {
   "name": "workpulse",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Assistant personnel de temps de travail — monorepo",
   "license": "MIT",
   "author": "Erwann Laplante",
@@ -37,7 +37,8 @@
     "android": "npm run build --workspace @workpulse/web && npm run android:sync --workspace @workpulse/web",
     "test:perf": "npm run test:perf --workspace @workpulse/core",
     "test:load": "npm run test:load --workspace @workpulse/api",
-    "check:migrations": "node scripts/check-migrations.mjs"
+    "check:migrations": "node scripts/check-migrations.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",

@@ -11,6 +11,46 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 
 ## [Non publié]
 
+## [0.5.0] — 2026-09-05
+
+### Ajouté
+
+- **Captures d'écran dans la documentation.** Six écrans, engendrés par
+  `npm run screenshots` : Chrome piloté par son protocole de débogage, horloge
+  figée et base locale réécrite, donc reproductibles au pixel près. Une capture
+  faite à la main vieillit en silence ; celle-ci se refait en une commande.
+
+### Modifié
+
+- **Le `.apk` passe de 4,7 Mo à 1,1 Mo.** La chaîne compilait une variante de
+  débogage : `classes.dex` non minifié, et 1,6 Mo de cartes de source
+  embarquées. Elle compile désormais la variante de publication, minifiée par
+  R8 — sans risque pour Capacitor, qui publie ses propres règles `-keep`.
+  Un téléchargement qui échouait près de la fin sur un réseau moyen a désormais
+  quatre fois moins d'occasions de le faire.
+- **La signature de publication se branche par secrets.** Si le dépôt fournit
+  un trousseau, la chaîne l'utilise ; sinon elle retombe sur la clé de
+  débogage. Une seule variante à maintenir. La chaîne vérifie en outre que le
+  paquet produit est bien signé, plutôt que de laisser le téléphone l'apprendre.
+- Les notes de version portent la taille du paquet, son empreinte SHA-256 et la
+  marche à suivre quand un téléchargement se fige à 100 %.
+
+### Corrigé
+
+- **Une semaine grevée d'une dette annonçait « tu peux partir » alors que le
+  bouton de départ réclamait encore du temps.** L'état `WEEK_COMPLETE` ne
+  regardait que l'objectif de la semaine, en ignorant le report entrant. Il
+  exige désormais aussi que la journée soit soldée.
+- **Douze minutes de dépassement repeignaient tout l'anneau en orange**, sur un
+  écran qui annonçait par ailleurs « objectif atteint » en vert. L'anneau garde
+  la couleur de l'état ; seul le fin arc intérieur signale le dépassement.
+- **Trois tolérances différentes pour une même idée.** La vue semaine peignait
+  en rouge une journée finie deux minutes trop tard, le calendrier annonçait des
+  heures supplémentaires au-delà de cinq minutes, et le moteur, lui, en tolérait
+  dix. Les trois écrans partagent maintenant `TREND_TOLERANCE`.
+- L'emoji du titre se retrouvait seul en fin de ligne sur un écran étroit : une
+  espace insécable le garde collé au prénom.
+
 ## [0.4.1] — 2026-09-05
 
 ### Sécurité
