@@ -46,7 +46,7 @@ jobs:
       - name: Aligner le projet Android et y copier l'application
         run: npm run android:sync --workspace @workpulse/web
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
