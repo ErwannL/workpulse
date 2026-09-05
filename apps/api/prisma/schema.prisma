@@ -1,0 +1,118 @@
+// Schéma de synchronisation WorkPulse.
+//
+// Principe : l'appareil reste la source de vérité. Le serveur n'est qu'un
+// point de rendez-vous entre plusieurs appareils d'un même utilisateur. Toutes
+// les lignes portent donc `updatedAt` (résolution de conflit au dernier
+// écrivain) et `deletedAt` (suppression réversible, indispensable pour qu'une
+// suppression se propage au lieu de « réapparaître » à la synchro suivante).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  email       String   @unique
+  displayName String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  devices  Device[]
+  entries  TimeEntry[]
+  workDays WorkDay[]
+  settings UserSettings?
+
+  @@map("users")
+}
+
+/// Un appareil apparié. Le jeton n'est jamais stocké en clair.
+model Device {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  name       String
+  tokenHash  String   @unique
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("devices")
+}
+
+enum EntryType {
+  CLOCK_IN
+  BREAK_START
+  BREAK_END
+  CLOCK_OUT
+}
+
+/// Un pointage. `id` est produit par le client : c'est ce qui rend la
+/// synchronisation idempotente, un même pointage rejoué ne crée pas de doublon.
+model TimeEntry {
+  id         String    @id @db.Uuid
+  userId     String    @db.Uuid
+  date       String    @db.VarChar(10)
+  type       EntryType
+  at         DateTime
+  manual     Boolean   @default(false)
+  editedAt   DateTime?
+  originalAt DateTime?
+  updatedAt  DateTime
+  deletedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@index([userId, date])
+  @@map("time_entries")
+}
+
+enum DayStatus {
+  WORK
+  REMOTE
+  HOLIDAY
+  LEAVE
+  RTT
+  SICK
+  SPECIAL
+  OTHER
+}
+
+/// Annotation d'une journée : statut, demi-journée, note.
+/// Clé métier `(userId, date)` — une journée n'existe qu'une fois par personne.
+model WorkDay {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @db.Uuid
+  date            String    @db.VarChar(10)
+  status          DayStatus @default(WORK)
+  worksOnHoliday  Boolean   @default(false)
+  plannedOverride Int?
+  notes           String?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, updatedAt])
+  @@map("work_days")
+}
+
+/// Réglages sérialisés tels quels : leur forme appartient au domaine
+/// (`@workpulse/core`), pas à la base. Les valider ici dupliquerait la règle.
+model UserSettings {
+  userId    String   @id @db.Uuid
+  payload   Json
+  updatedAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
