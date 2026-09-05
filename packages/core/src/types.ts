@@ -43,11 +43,45 @@ export interface WorkDay {
   status: DayStatus;
   /** Jour férié mais travaillé quand même : le temps théorique redevient normal. */
   worksOnHoliday?: boolean;
+  /** Change la forme de cette journée-là sans toucher à la semaine type. */
+  pattern?: DayPattern;
   /** Force le temps théorique du jour (demi-journée de congé, etc.). */
   plannedOverride?: Minutes;
   notes?: string;
   updatedAt: number;
 }
+
+/**
+ * Forme d'une journée de travail.
+ *
+ * `MORNING` et `AFTERNOON` décrivent une demi-journée : ni l'une ni l'autre
+ * ne comporte de pause déjeuner, et les alertes s'alignent sur le seul créneau
+ * réellement travaillé.
+ */
+export type DayPattern = 'FULL' | 'MORNING' | 'AFTERNOON' | 'CUSTOM' | 'OFF';
+
+export const DAY_PATTERN_LABEL: Record<DayPattern, string> = {
+  FULL: 'Journée complète',
+  MORNING: 'Matin seulement',
+  AFTERNOON: 'Après-midi seulement',
+  CUSTOM: 'Horaires personnalisés',
+  OFF: 'Non travaillé',
+};
+
+/** Horaire théorique d'une journée : durée due et créneaux de référence. */
+export interface DaySchedule {
+  pattern: DayPattern;
+  /** Temps de travail dû, pauses exclues. */
+  minutes: Minutes;
+  start: HHMM;
+  end: HHMM;
+  /** Absents sur une demi-journée : on ne coupe pas trois heures de travail. */
+  breakStart?: HHMM;
+  breakEnd?: HHMM;
+}
+
+/** Horaire de chaque jour de la semaine, indexé de 1 (lundi) à 7 (dimanche). */
+export type WeekSchedule = Record<number, DaySchedule>;
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -63,15 +97,15 @@ export interface NotificationSettings {
 
 export interface Settings {
   userName: string;
-  weeklyMinutes: Minutes;
+  /**
+   * Horaire hebdomadaire type. C'est lui qui fait foi : l'objectif de la
+   * semaine est la somme de ses journées, ce qui permet un vendredi matin
+   * seul sans règle particulière ailleurs.
+   */
+  week: WeekSchedule;
+  /** Durée d'une journée complète, utilisée comme gabarit. */
   dailyMinutes: Minutes;
-  /** Jours travaillés, 1 = lundi … 7 = dimanche. */
-  workDays: number[];
   overtimeCapMinutes: Minutes;
-  refStart: HHMM;
-  refBreakStart: HHMM;
-  refBreakEnd: HHMM;
-  refEnd: HHMM;
   /** Durée minimale légale de la pause déjeuner. */
   minBreakMinutes: Minutes;
   /** Si vrai, impossible de reprendre avant la pause minimale. */

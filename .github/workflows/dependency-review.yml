@@ -1,0 +1,22 @@
+name: Revue des dépendances
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  revue:
+    name: Vulnérabilités et licences
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure
+          # WorkPulse est publié sous licence MIT : les licences contaminantes
+          # sont refusées à l'entrée plutôt que découvertes trop tard.
+          deny-licenses: GPL-3.0, AGPL-3.0, LGPL-3.0

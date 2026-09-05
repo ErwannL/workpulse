@@ -24,6 +24,8 @@ export default defineConfig({
   // Chemins relatifs : l'application doit fonctionner sous un sous-dossier
   // (GitHub Pages) comme à la racine d'un domaine.
   base: './',
+  server: { port: 5173, strictPort: true },
+  preview: { port: 4173, strictPort: true },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

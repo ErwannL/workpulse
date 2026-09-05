@@ -15,7 +15,7 @@ import {
   upsertDay,
   wipeAll,
 } from './repo';
-import { atTimeOn } from '@workpulse/core';
+import { atTimeOn, weeklyMinutes, workingWeekdays } from '@workpulse/core';
 
 const D = '2026-09-07';
 let base: WorkPulseDB;
@@ -29,7 +29,8 @@ beforeEach(async () => {
 describe('stockage local', () => {
   it('renvoie les réglages par défaut quand rien n’est enregistré', async () => {
     const s = await loadSettings(base);
-    expect(s.weeklyMinutes).toBe(2100);
+    expect(weeklyMinutes(s)).toBe(2100);
+    expect(workingWeekdays(s)).toEqual([1, 2, 3, 4, 5]);
     expect(s.minBreakMinutes).toBe(30);
   });
 

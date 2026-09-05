@@ -1,0 +1,59 @@
+name: Publication d'une version
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  publier:
+    name: Créer la release GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Générer le client Prisma
+        run: npm run prisma:generate --workspace @workpulse/api
+      - name: Vérifier avant de publier
+        run: |
+          npm run build:core
+          npm run lint
+          npm run test
+          npm run build
+      - name: Empaqueter l'application web
+        run: |
+          cd apps/web/dist
+          zip -r ../../../workpulse-web-${{ github.ref_name }}.zip .
+      - name: Rédiger les notes de version
+        id: notes
+        run: |
+          precedent=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
+          {
+            echo 'corps<<FIN'
+            if [ -n "$precedent" ]; then
+              echo "### Changements depuis $precedent"
+              echo
+              git log --no-merges --pretty='- %s' "$precedent..${{ github.ref_name }}"
+            else
+              echo "### Première version"
+              echo
+              git log --no-merges --pretty='- %s'
+            fi
+            echo
+            echo "Application web prête à installer : voir la pièce jointe."
+            echo 'FIN'
+          } >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: WorkPulse ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.corps }}
+          files: workpulse-web-${{ github.ref_name }}.zip
+          generate_release_notes: false

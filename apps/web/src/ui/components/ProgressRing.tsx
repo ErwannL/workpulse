@@ -32,7 +32,7 @@ export function ProgressRing({
   const over = Math.max(0, Math.min(1, ratio - 1));
 
   return (
-    <div className="ring" style={{ width: size, height: size }}>
+    <div className="ring" style={{ width: size, height: size, ['--ring-length' as string]: c }}>
       <svg width={size} height={size} aria-hidden="true">
         <circle
           className="ring__track"
@@ -68,7 +68,10 @@ export function ProgressRing({
         )}
       </svg>
       <div className="ring__center">
-        <div className="ring__big">{big}</div>
+        {/* La clé rejoue l'animation à chaque changement de valeur. */}
+        <div className="ring__big" key={String(big)}>
+          {big}
+        </div>
         {label && <div className="ring__label">{label}</div>}
         {badge && <div className="ring__badge">{badge}</div>}
       </div>
@@ -81,10 +84,13 @@ export function ProgressBar({
   value,
   target,
   cap = 0,
+  live = false,
 }: {
   value: number;
   target: number;
   cap?: number;
+  /** Journée en cours : la barre porte un reflet lent. */
+  live?: boolean;
 }) {
   const span = target + cap || 1;
   const filled = Math.max(0, Math.min(value, target)) / span;
@@ -95,7 +101,7 @@ export function ProgressBar({
   return (
     <div className="bar">
       <div
-        className={`bar__fill${overflowing ? ' bar__fill--over' : ''}`}
+        className={`bar__fill${overflowing ? ' bar__fill--over' : ''}${live ? ' bar__fill--live' : ''}`}
         style={{ width: `${filled * 100}%` }}
       />
       {extra > 0 && (

@@ -1,0 +1,27 @@
+name: Évolution
+description: Une capacité manquante
+labels: [évolution]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: La question à laquelle l'application ne sait pas répondre
+      description: "WorkPulse est un assistant : partez de la question, pas de l'écran."
+    validations:
+      required: true
+  - type: textarea
+    id: regle
+    attributes:
+      label: Règle métier impliquée
+      description: Faut-il une nouvelle règle, ou en modifier une existante ?
+  - type: dropdown
+    id: portee
+    attributes:
+      label: Où cela vit-il ?
+      options:
+        - Domaine (packages/core)
+        - Interface (apps/web)
+        - API de synchronisation (apps/api)
+        - Je ne sais pas
+    validations:
+      required: true

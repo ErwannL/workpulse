@@ -6,7 +6,7 @@ import { StoreProvider } from '@/state/store';
 import { App } from '@/ui/App';
 import { db } from '@/db/db';
 import { addEntry, loadSettings, saveSettings, upsertDay, wipeAll } from '@/db/repo';
-import { atTimeOn } from '@workpulse/core';
+import { atTimeOn, weeklyMinutes, workingWeekdays } from '@workpulse/core';
 
 const MON = '2026-09-07';
 const TUE = '2026-09-08';
@@ -234,38 +234,73 @@ describe('statistiques', () => {
 });
 
 describe('réglages', () => {
-  it('modifie le temps de travail et le rend au domaine', async () => {
+  it('modifie le gabarit de journée complète', async () => {
     await renderApp('reglages');
-
-    fireEvent.change(main().getByLabelText('Heures par jour'), { target: { value: '8' } });
+    fireEvent.change(main().getByLabelText('Durée d’une journée complète'), {
+      target: { value: '8' },
+    });
     await waitFor(async () => expect((await loadSettings()).dailyMinutes).toBe(480));
-
-    fireEvent.change(main().getByLabelText('Heures par semaine'), { target: { value: '39' } });
-    await waitFor(async () => expect((await loadSettings()).weeklyMinutes).toBe(2340));
   });
 
-  it('désactive un jour travaillé mais jamais tous', async () => {
+  it('règle un vendredi en demi-journée du matin', async () => {
     await renderApp('reglages');
-    const dayButton = (index: number) =>
-      within(screen.getByRole('group', { name: 'Jours travaillés' })).getAllByRole('button')[index];
+    await user.click(main().getByRole('button', { name: /Vendredi/ }));
 
-    await user.click(dayButton(0));
-    await waitFor(async () => expect((await loadSettings()).workDays).toEqual([2, 3, 4, 5]));
+    const sheet = within(screen.getByRole('dialog'));
+    await user.click(sheet.getByRole('button', { name: 'Matin seulement' }));
 
-    // Chaque clic attend l'enregistrement : sans cela, deux clics rapides
-    // partiraient de la même liste et l'un des deux serait perdu.
-    for (const [index, expected] of [
-      [1, [3, 4, 5]],
-      [2, [4, 5]],
-      [3, [5]],
-    ] as const) {
-      await user.click(dayButton(index));
-      await waitFor(async () => expect((await loadSettings()).workDays).toEqual([...expected]));
-    }
+    await waitFor(async () => {
+      const settings = await loadSettings();
+      expect(settings.week[5].pattern).toBe('MORNING');
+      expect(settings.week[5].minutes).toBe(210);
+      expect(settings.week[5].end).toBe('12:00');
+      expect(weeklyMinutes(settings)).toBe(4 * 420 + 210);
+    });
 
-    // Le dernier jour travaillé ne peut pas être retiré.
-    await user.click(dayButton(4));
-    expect((await loadSettings()).workDays).toEqual([5]);
+    await user.click(sheet.getByRole('button', { name: 'Terminé' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(main().getByText('3h30')).toBeInTheDocument();
+  });
+
+  it('déclare un samedi travaillé puis le repasse en repos', async () => {
+    await renderApp('reglages');
+    await user.click(main().getByRole('button', { name: /Samedi/ }));
+
+    const sheet = within(screen.getByRole('dialog'));
+    await user.click(sheet.getByRole('button', { name: 'Journée complète' }));
+    await waitFor(async () => expect(workingWeekdays(await loadSettings())).toContain(6));
+
+    await user.click(sheet.getByRole('button', { name: 'Non travaillé' }));
+    await waitFor(async () => expect(workingWeekdays(await loadSettings())).not.toContain(6));
+  });
+
+  it('distingue la durée due des horaires de référence', async () => {
+    await renderApp('reglages');
+    await user.click(main().getByRole('button', { name: /Lundi/ }));
+
+    const sheet = within(screen.getByRole('dialog'));
+
+    // Déplacer une borne ne change pas ce qui est dû…
+    fireEvent.change(sheet.getByLabelText('Fin de la journée'), { target: { value: '18:00' } });
+    await waitFor(async () => expect((await loadSettings()).week[1].end).toBe('18:00'));
+    expect((await loadSettings()).week[1].minutes).toBe(420);
+    expect(sheet.getByText(/pour/)).toBeInTheDocument();
+
+    // …seule la durée le fait.
+    fireEvent.change(sheet.getByLabelText('Durée due'), { target: { value: '6' } });
+    await waitFor(async () => expect((await loadSettings()).week[1].minutes).toBe(360));
+  });
+
+  it('retire la coupure déjeuner d’une journée', async () => {
+    await renderApp('reglages');
+    await user.click(main().getByRole('button', { name: /Lundi/ }));
+    const sheet = within(screen.getByRole('dialog'));
+
+    await user.click(sheet.getByRole('switch', { name: 'Pause déjeuner' }));
+    await waitFor(async () => expect((await loadSettings()).week[1].breakStart).toBeUndefined());
+
+    await user.click(sheet.getByRole('switch', { name: 'Pause déjeuner' }));
+    await waitFor(async () => expect((await loadSettings()).week[1].breakStart).toBe('12:00'));
   });
 
   it('coupe les alertes', async () => {
@@ -330,19 +365,6 @@ describe('réglages', () => {
 });
 
 describe('réglages — champs restants', () => {
-  it('modifie les horaires de référence', async () => {
-    await renderApp('reglages');
-    for (const [label, value, field] of [
-      ['Début de journée', '08:30', 'refStart'],
-      ['Début de pause', '12:30', 'refBreakStart'],
-      ['Fin de pause', '13:30', 'refBreakEnd'],
-      ['Fin de journée', '17:30', 'refEnd'],
-    ] as const) {
-      fireEvent.change(main().getByLabelText(label), { target: { value } });
-      await waitFor(async () => expect((await loadSettings())[field]).toBe(value));
-    }
-  });
-
   it('modifie le plafond, la pause minimale et la répétition', async () => {
     await renderApp('reglages');
 
@@ -364,7 +386,9 @@ describe('réglages — champs restants', () => {
 
   it('ignore une saisie de durée illisible', async () => {
     await renderApp('reglages');
-    fireEvent.change(main().getByLabelText('Heures par jour'), { target: { value: 'abc' } });
+    fireEvent.change(main().getByLabelText('Durée d’une journée complète'), {
+      target: { value: 'abc' },
+    });
     expect((await loadSettings()).dailyMinutes).toBe(420);
   });
 

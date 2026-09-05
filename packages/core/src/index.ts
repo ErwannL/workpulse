@@ -8,6 +8,7 @@
 export * from './types.js';
 export * from './time.js';
 export * from './holidays.js';
+export * from './schedule.js';
 export * from './settings.js';
 export * from './day.js';
 export * from './ledger.js';

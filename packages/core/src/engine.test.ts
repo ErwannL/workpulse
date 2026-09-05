@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { computePulse, pulseSentence } from './engine.js';
 import { evaluateBreak } from './breakRules.js';
-import { DEFAULT_SETTINGS } from './settings.js';
+import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
+import { scheduleFromPattern } from './schedule.js';
 import { atTimeOn, clock, weekDays } from './time.js';
 import { entry, fullDay, makeSource, workDay } from './testing.js';
 
@@ -357,5 +358,84 @@ describe('jour férié déclaré à la main', () => {
     const p = computePulse(src);
     expect(p.state).toBe('HOLIDAY');
     expect(p.headline).toBe('Jour férié');
+  });
+});
+
+describe('demi-journées', () => {
+  /** Semaine dont seul le vendredi est une matinée, suivie depuis le lundi. */
+  const morningWeek = () => {
+    const settings = mergeSettings({ trackingStart: MON });
+    settings.week[5] = scheduleFromPattern('MORNING', 420);
+    return settings;
+  };
+
+  /** Les jours précédents sont bouclés : l'avance ne fausse pas le scénario. */
+  const previousDays = [MON, TUE, WED, '2026-09-10'].flatMap((d) => fullDay(d, '16:00'));
+
+  it('un vendredi matin ne doit que la moitié d’une journée', () => {
+    const src = makeSource({
+      now: atTimeOn(FRI, '11:00'),
+      settings: morningWeek(),
+      entries: [...previousDays, entry(FRI, 'CLOCK_IN', '08:00')],
+    });
+    const p = computePulse(src);
+    expect(p.day.planned).toBe(210);
+    expect(p.schedule.pattern).toBe('MORNING');
+    expect(Math.round(p.remainingToday)).toBe(30);
+  });
+
+  it('n’impose aucune pause sur une demi-journée', () => {
+    const src = makeSource({
+      now: atTimeOn(FRI, '08:30'),
+      settings: morningWeek(),
+      entries: [...previousDays, entry(FRI, 'CLOCK_IN', '08:00')],
+    });
+    const p = computePulse(src);
+    expect(p.pendingBreak).toBe(0);
+    expect(clock(p.leaveAt!)).toBe('11:30');
+  });
+
+  it('ramène l’objectif de la semaine à 31h30', () => {
+    const src = makeSource({ now: atTimeOn(FRI, '09:00'), settings: morningWeek() });
+    expect(computePulse(src).week.planned).toBe(4 * 420 + 210);
+  });
+
+  it('un après-midi seul démarre après le déjeuner', () => {
+    const settings = mergeSettings({ trackingStart: MON });
+    settings.week[1] = scheduleFromPattern('AFTERNOON', 420);
+    const src = makeSource({
+      now: atTimeOn(MON, '14:00'),
+      settings,
+      entries: [entry(MON, 'CLOCK_IN', '13:00')],
+    });
+    const p = computePulse(src);
+    expect(p.schedule.start).toBe('13:00');
+    expect(p.day.planned).toBe(210);
+    expect(clock(p.leaveAt!)).toBe('16:30');
+  });
+
+  it('accepte une demi-journée posée sur une seule date', () => {
+    const src = makeSource({
+      now: atTimeOn(WED, '11:45'),
+      settings: { trackingStart: WED },
+      days: [workDay(WED, { pattern: 'MORNING' })],
+      entries: [entry(WED, 'CLOCK_IN', '08:00')],
+    });
+    const p = computePulse(src);
+    expect(p.day.planned).toBe(210);
+    expect(p.state).toBe('DAY_COMPLETE');
+  });
+
+  it('permet de travailler exceptionnellement un samedi', () => {
+    const SAT = '2026-09-12';
+    const src = makeSource({
+      now: atTimeOn(SAT, '10:00'),
+      settings: { trackingStart: SAT },
+      days: [workDay(SAT, { pattern: 'MORNING' })],
+      entries: [entry(SAT, 'CLOCK_IN', '08:00')],
+    });
+    const p = computePulse(src);
+    expect(p.day.planned).toBe(210);
+    expect(p.state).toBe('WORKING');
   });
 });

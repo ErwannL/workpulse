@@ -1,11 +1,21 @@
 import { useRef, useState } from 'react';
+import {
+  DAY_PATTERN_LABEL,
+  formatClockish,
+  formatLongDate,
+  formatSigned,
+  scheduleForWeekday,
+  weeklyMinutes,
+  type DaySchedule,
+} from '@workpulse/core';
 import { useStore } from '@/state/context';
-import { formatClockish, formatLongDate, formatSigned } from '@workpulse/core';
 import { exportBackup, importBackup, wipeAll } from '@/db/repo';
 import { Card, Field, Sheet, Switch } from '@/ui/components/primitives';
-import { IconDownload, IconUpload } from '@/ui/icons';
+import { ScheduleSheet } from '@/ui/components/ScheduleSheet';
+import { IconChevronRight, IconDownload, IconUpload } from '@/ui/icons';
+import { AdminPanel } from '@/ui/components/AdminPanel';
 
-const DAY_LETTERS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const DAY_NAMES = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 /** Champ de durée saisi en heures décimales et stocké en minutes. */
 function HoursInput({
@@ -44,19 +54,14 @@ export function SettingsScreen() {
   const store = useStore();
   const { settings } = store;
   const [confirmWipe, setConfirmWipe] = useState(false);
+  const [editingWeekday, setEditingWeekday] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = store.updateSettings;
   const setNotif = (patch: Partial<typeof settings.notifications>) =>
     set({ notifications: { ...settings.notifications, ...patch } });
-
-  const toggleWorkDay = (d: number) => {
-    const next = settings.workDays.includes(d)
-      ? settings.workDays.filter((x) => x !== d)
-      : [...settings.workDays, d].sort((a, b) => a - b);
-    if (next.length === 0) return;
-    set({ workDays: next });
-  };
+  const setWeekday = (weekday: number, schedule: DaySchedule) =>
+    set({ week: { ...settings.week, [weekday]: schedule } });
 
   const doExport = async () => {
     const backup = await exportBackup();
@@ -101,17 +106,54 @@ export function SettingsScreen() {
           </Field>
         </Card>
 
+        <Card title="Semaine type">
+          <p className="small muted" style={{ marginBottom: 12 }}>
+            Objectif hebdomadaire :{' '}
+            <strong className="num">{formatClockish(weeklyMinutes(settings))}</strong>. Chaque
+            journée se règle séparément — matin seul, après-midi seul ou horaires libres.
+          </p>
+          <div className="rows">
+            {[1, 2, 3, 4, 5, 6, 7].map((weekday) => {
+              const schedule = scheduleForWeekday(weekday, settings);
+              return (
+                <button
+                  key={weekday}
+                  type="button"
+                  className="row row--tappable"
+                  onClick={() => setEditingWeekday(weekday)}
+                >
+                  <span className="row__label">
+                    <strong style={{ color: 'var(--text)', width: 78, display: 'inline-block' }}>
+                      {DAY_NAMES[weekday - 1]}
+                    </strong>
+                    <span className="small">
+                      {schedule.minutes === 0
+                        ? DAY_PATTERN_LABEL.OFF
+                        : `${schedule.start} – ${schedule.end}`}
+                    </span>
+                  </span>
+                  <span className="row__value">
+                    {schedule.minutes === 0 ? (
+                      <span className="value-muted small">—</span>
+                    ) : (
+                      formatClockish(schedule.minutes)
+                    )}
+                    <IconChevronRight
+                      width={15}
+                      height={15}
+                      style={{ verticalAlign: '-2px', opacity: 0.5, marginLeft: 4 }}
+                    />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
         <Card title="Temps de travail">
-          <Field label="Heures par semaine" hint={formatClockish(settings.weeklyMinutes)}>
+          <Field label="Journée complète" hint="Gabarit appliqué aux journées entières">
             <HoursInput
-              label="Heures par semaine"
-              minutes={settings.weeklyMinutes}
-              onChange={(m) => set({ weeklyMinutes: m })}
-            />
-          </Field>
-          <Field label="Heures par jour" hint={formatClockish(settings.dailyMinutes)}>
-            <HoursInput
-              label="Heures par jour"
+              label="Durée d’une journée complète"
               minutes={settings.dailyMinutes}
               onChange={(m) => set({ dailyMinutes: m })}
               max={16}
@@ -128,73 +170,14 @@ export function SettingsScreen() {
               max={20}
             />
           </Field>
-          <div style={{ paddingTop: 12 }}>
-            <div className="field__label" style={{ marginBottom: 8 }} id="jours-travailles">
-              Jours travaillés
-            </div>
-            <div className="daypicker" role="group" aria-labelledby="jours-travailles">
-              {DAY_LETTERS.map((letter, i) => {
-                const d = i + 1;
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    aria-pressed={settings.workDays.includes(d)}
-                    onClick={() => toggleWorkDay(d)}
-                  >
-                    {letter}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Horaires de référence">
-          <Field label="Début de journée">
-            <input
-              className="input"
-              type="time"
-              aria-label="Début de journée"
-              value={settings.refStart}
-              onChange={(e) => set({ refStart: e.target.value })}
-            />
-          </Field>
-          <Field label="Début de pause">
-            <input
-              className="input"
-              type="time"
-              aria-label="Début de pause"
-              value={settings.refBreakStart}
-              onChange={(e) => set({ refBreakStart: e.target.value })}
-            />
-          </Field>
-          <Field label="Fin de pause">
-            <input
-              className="input"
-              type="time"
-              aria-label="Fin de pause"
-              value={settings.refBreakEnd}
-              onChange={(e) => set({ refBreakEnd: e.target.value })}
-            />
-          </Field>
-          <Field label="Fin de journée">
-            <input
-              className="input"
-              type="time"
-              aria-label="Fin de journée"
-              value={settings.refEnd}
-              onChange={(e) => set({ refEnd: e.target.value })}
-            />
-          </Field>
         </Card>
 
         <Card title="Pause déjeuner">
           <Field label="Pause minimale" hint="En dessous, la reprise est refusée.">
             <input
               className="input"
-              type="number"
               aria-label="Pause minimale en minutes"
+              type="number"
               min={0}
               max={180}
               step={5}
@@ -224,28 +207,28 @@ export function SettingsScreen() {
               label="Activer les alertes"
             />
           </Field>
-          <Field label="Début de journée" hint={settings.refStart}>
+          <Field label="Début de journée" hint="À l’heure de début propre au jour">
             <Switch
               checked={settings.notifications.dayStart}
               onChange={(v) => setNotif({ dayStart: v })}
               label="Alerte de début de journée"
             />
           </Field>
-          <Field label="Déjeuner" hint={settings.refBreakStart}>
+          <Field label="Déjeuner" hint="Seulement les journées avec coupure">
             <Switch
               checked={settings.notifications.lunchStart}
               onChange={(v) => setNotif({ lunchStart: v })}
               label="Alerte déjeuner"
             />
           </Field>
-          <Field label="Reprise" hint={settings.refBreakEnd}>
+          <Field label="Reprise" hint="Une fois la pause minimale écoulée">
             <Switch
               checked={settings.notifications.lunchEnd}
               onChange={(v) => setNotif({ lunchEnd: v })}
               label="Alerte de reprise"
             />
           </Field>
-          <Field label="Fin de journée" hint={settings.refEnd}>
+          <Field label="Fin de journée" hint="À l’heure de fin propre au jour">
             <Switch
               checked={settings.notifications.dayEnd}
               onChange={(v) => setNotif({ dayEnd: v })}
@@ -255,8 +238,8 @@ export function SettingsScreen() {
           <Field label="Répétition" hint="Minutes entre deux rappels">
             <input
               className="input"
-              type="number"
               aria-label="Répétition des alertes en minutes"
+              type="number"
               min={1}
               max={60}
               value={settings.notifications.repeatMinutes}
@@ -270,8 +253,8 @@ export function SettingsScreen() {
           <Field label="Début du suivi" hint={formatLongDate(settings.trackingStart)}>
             <input
               className="input"
-              type="date"
               aria-label="Début du suivi"
+              type="date"
               value={settings.trackingStart}
               onChange={(e) => e.target.value && set({ trackingStart: e.target.value })}
             />
@@ -323,6 +306,16 @@ export function SettingsScreen() {
 
         <AdminPanel />
       </main>
+
+      {editingWeekday !== null && (
+        <ScheduleSheet
+          weekday={editingWeekday}
+          schedule={scheduleForWeekday(editingWeekday, settings)}
+          dailyMinutes={settings.dailyMinutes}
+          onChange={(schedule) => setWeekday(editingWeekday, schedule)}
+          onClose={() => setEditingWeekday(null)}
+        />
+      )}
 
       {confirmWipe && (
         <Sheet
@@ -387,53 +380,5 @@ function SystemNotificationField() {
         </span>
       )}
     </Field>
-  );
-}
-
-function AdminPanel() {
-  const store = useStore();
-  const entryCount = [...store.entries.values()].reduce((s, l) => s + l.length, 0);
-  const installed =
-    typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
-
-  return (
-    <Card title="Panneau d’administration">
-      <div className="rows">
-        <div className="row">
-          <span className="row__label">Version</span>
-          <span className="row__value">
-            <span className="chip chip--accent">v{__APP_VERSION__}</span>
-          </span>
-        </div>
-        <div className="row">
-          <span className="row__label">Révision</span>
-          <span className="row__value mono small">{__APP_TAG__}</span>
-        </div>
-        <div className="row">
-          <span className="row__label">Commit</span>
-          <span className="row__value mono small">{__APP_COMMIT__}</span>
-        </div>
-        <div className="row">
-          <span className="row__label">Compilé le</span>
-          <span className="row__value small">
-            {new Date(__BUILD_DATE__).toLocaleString('fr-FR')}
-          </span>
-        </div>
-        <div className="row">
-          <span className="row__label">Pointages enregistrés</span>
-          <span className="row__value">{entryCount}</span>
-        </div>
-        <div className="row">
-          <span className="row__label">Journées annotées</span>
-          <span className="row__value">{store.days.size}</span>
-        </div>
-        <div className="row">
-          <span className="row__label">Mode</span>
-          <span className="row__value small">
-            {installed ? 'Application installée' : 'Navigateur'}
-          </span>
-        </div>
-      </div>
-    </Card>
   );
 }
