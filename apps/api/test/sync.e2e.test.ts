@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { ValidationPipe, VersioningType, type INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
 import { AppModule } from '../src/app.module';
-import { AllExceptionsFilter } from '../src/common/http-exception.filter';
+import { configureApp } from '../src/bootstrap';
 import { generateDeviceToken, hashToken } from '../src/auth/auth.service';
 
 /**
@@ -28,12 +28,9 @@ describeIfDb('API de synchronisation (e2e)', () => {
     await prisma.$connect();
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
-    app.useGlobalFilters(new AllExceptionsFilter());
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-    );
+    // La même configuration qu'en production : les protections testées ici
+    // sont exactement celles qui tourneront.
+    app = configureApp(moduleRef.createNestApplication());
     await app.init();
 
     const user = await prisma.user.create({

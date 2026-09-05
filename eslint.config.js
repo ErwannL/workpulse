@@ -86,9 +86,10 @@ export default tseslint.config(
     },
   },
 
-  // Les scripts de construction parlent sur la sortie standard : c'est leur rôle.
+  // Les scripts d'outillage et les injecteurs de charge parlent sur la sortie
+  // standard : c'est leur seule façon de rendre un verdict.
   {
-    files: ['**/scripts/**/*.{mjs,js}'],
+    files: ['**/scripts/**/*.{mjs,js}', '**/test/*.mjs'],
     rules: { 'no-console': 'off' },
   },
 

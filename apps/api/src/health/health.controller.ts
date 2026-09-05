@@ -9,9 +9,12 @@ export interface HealthResponse {
   checks: { database: 'up' | 'down' };
 }
 
-/** Sonde minimale utilisée par le conteneur, le proxy et la supervision. */
+/**
+ * Sonde minimale utilisée par le conteneur, le proxy et la supervision.
+ * Requête paramétrée : aucune API brute n'est exposée, même pour un `SELECT 1`.
+ */
 export interface DatabaseProbe {
-  $queryRawUnsafe(query: string): Promise<unknown>;
+  $queryRaw(query: TemplateStringsArray, ...valeurs: unknown[]): Promise<unknown>;
 }
 
 /** Version du paquet, injectée par npm au lancement. */
@@ -35,7 +38,7 @@ export class HealthController {
   async ready(db: DatabaseProbe = this.prisma): Promise<HealthResponse> {
     let database: 'up' | 'down' = 'up';
     try {
-      await db.$queryRawUnsafe('SELECT 1');
+      await db.$queryRaw`SELECT 1`;
     } catch {
       database = 'down';
     }

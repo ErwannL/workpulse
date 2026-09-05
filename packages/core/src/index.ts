@@ -6,6 +6,7 @@
  * qu'une règle de calcul ne peut pas diverger entre le téléphone et le serveur.
  */
 export * from './types.js';
+export * from './safety.js';
 export * from './time.js';
 export * from './holidays.js';
 export * from './schedule.js';

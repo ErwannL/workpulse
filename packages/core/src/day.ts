@@ -1,6 +1,7 @@
 import type { DateISO, DayPhase, Minutes, Settings, TimeEntry, WorkDay } from './types.js';
 import { OFF_STATUSES } from './types.js';
 import { holidayName } from './holidays.js';
+import { todayISO } from './time.js';
 import { scheduleForDate } from './schedule.js';
 
 export interface BreakSpan {
@@ -115,11 +116,33 @@ export function computeDay(date: DateISO, entries: TimeEntry[], now: number): Da
     }
   }
 
-  // Segments encore ouverts : on les compte jusqu'à l'instant présent.
-  if (phase === 'WORKING' && workStart !== null) worked += Math.max(0, (now - workStart) / 60_000);
-  if (phase === 'BREAK' && breakStart !== null) breaks += Math.max(0, (now - breakStart) / 60_000);
+  /*
+   * Segments encore ouverts.
+   *
+   * Sur la journée en cours, ils courent jusqu'à maintenant : c'est le
+   * compteur qui tourne. Sur une journée passée, en revanche, un départ non
+   * pointé ne doit surtout pas continuer de compter — un oubli du lundi
+   * vaudrait cinquante heures le mercredi. Ces minutes ne sont pas inventées :
+   * la journée est signalée comme incomplète, à corriger à la main.
+   */
+  const journeePassee = date < todayISO(now);
+  if (journeePassee && (phase === 'WORKING' || phase === 'BREAK')) {
+    anomalies.push(phase === 'WORKING' ? 'Départ jamais pointé' : 'Reprise jamais pointée');
+  } else {
+    if (phase === 'WORKING' && workStart !== null)
+      worked += Math.max(0, (now - workStart) / 60_000);
+    if (phase === 'BREAK' && breakStart !== null)
+      breaks += Math.max(0, (now - breakStart) / 60_000);
+  }
 
-  const presence = firstIn === null ? 0 : Math.max(0, ((lastOut ?? now) - firstIn) / 60_000);
+  // Sans arrivée, il n'y a pas de présence à mesurer. Sinon elle s'arrête au
+  // départ pointé, à défaut à l'instant présent — ou, sur une journée passée
+  // laissée ouverte, au dernier pointage connu.
+  let presence = 0;
+  if (firstIn !== null) {
+    const fin = lastOut ?? (journeePassee ? firstIn : now);
+    presence = Math.max(0, (fin - firstIn) / 60_000);
+  }
 
   return {
     date,

@@ -173,3 +173,39 @@ describe('computeDay — séquences dégradées', () => {
     expect(Math.round(r.presence)).toBe(540);
   });
 });
+
+describe('journée passée laissée ouverte', () => {
+  const DEMAIN = '2026-09-08';
+
+  it('ne compte pas les heures d’un départ jamais pointé', () => {
+    // Deux jours plus tard, l'oubli du lundi ne vaut pas quarante heures.
+    const r = computeDay(D, [entry(D, 'CLOCK_IN', '08:00')], atTimeOn('2026-09-09', '10:00'));
+    expect(r.worked).toBe(0);
+    expect(r.anomalies).toContain('Départ jamais pointé');
+  });
+
+  it('ne compte pas non plus une pause jamais close', () => {
+    const entries = [entry(D, 'CLOCK_IN', '08:00'), entry(D, 'BREAK_START', '12:00')];
+    const r = computeDay(D, entries, atTimeOn(DEMAIN, '10:00'));
+    expect(Math.round(r.worked)).toBe(240);
+    expect(r.breaks).toBe(0);
+    expect(r.anomalies).toContain('Reprise jamais pointée');
+  });
+
+  it('arrête la présence au dernier pointage connu', () => {
+    const r = computeDay(D, [entry(D, 'CLOCK_IN', '08:00')], atTimeOn(DEMAIN, '10:00'));
+    expect(r.presence).toBe(0);
+  });
+
+  it('laisse le compteur tourner sur la journée en cours', () => {
+    const r = computeDay(D, [entry(D, 'CLOCK_IN', '08:00')], at('11:30'));
+    expect(Math.round(r.worked)).toBe(210);
+    expect(r.anomalies).toEqual([]);
+  });
+
+  it('n’altère pas une journée passée correctement pointée', () => {
+    const r = computeDay(D, fullDay(D, '17:00'), atTimeOn('2026-09-20', '10:00'));
+    expect(Math.round(r.worked)).toBe(480);
+    expect(r.anomalies).toEqual([]);
+  });
+});

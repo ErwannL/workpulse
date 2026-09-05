@@ -96,3 +96,95 @@ describe('stockage local', () => {
     await expect(importBackup({ app: 'autre' } as never, base)).rejects.toThrow(/non reconnu/);
   });
 });
+
+describe('sauvegardes hostiles', () => {
+  const valide = {
+    app: 'workpulse',
+    version: 1,
+    exportedAt: '2026-09-05T00:00:00.000Z',
+    settings: {},
+    days: [],
+    entries: [],
+  };
+
+  it('refuse un fichier qui n’est pas une sauvegarde', async () => {
+    for (const brut of [null, 42, 'texte', [], { app: 'autre' }, {}]) {
+      await expect(importBackup(brut, base)).rejects.toThrow(/non reconnu/);
+    }
+  });
+
+  it('n’applique pas une pollution de prototype cachée dans les réglages', async () => {
+    const hostile = JSON.parse(
+      '{"app":"workpulse","settings":{"__proto__":{"pirate":true}},"days":[],"entries":[]}',
+    );
+    await importBackup(hostile, base);
+    expect(({} as Record<string, unknown>).pirate).toBeUndefined();
+  });
+
+  it('refuse des réglages démesurés', async () => {
+    const settings: Record<string, number> = {};
+    for (let i = 0; i < 600; i++) settings[`k${i}`] = i;
+    await expect(importBackup({ ...valide, settings }, base)).rejects.toThrow(/illisibles/);
+  });
+
+  it('refuse un pointage sans type connu', async () => {
+    const entries = [{ id: 'a', date: '2026-09-07', type: 'DROP_TABLE', at: 1 }];
+    await expect(importBackup({ ...valide, entries }, base)).rejects.toThrow(/type inconnu/);
+  });
+
+  it('refuse une date malformée', async () => {
+    const entries = [{ id: 'a', date: "'; DROP TABLE--", type: 'CLOCK_IN', at: 1 }];
+    await expect(importBackup({ ...valide, entries }, base)).rejects.toThrow(/date invalide/);
+    const days = [{ date: '../../etc/passwd', status: 'LEAVE', updatedAt: 1 }];
+    await expect(importBackup({ ...valide, days }, base)).rejects.toThrow(/date invalide/);
+  });
+
+  it('refuse un horodatage non numérique', async () => {
+    const entries = [{ id: 'a', date: '2026-09-07', type: 'CLOCK_IN', at: 'maintenant' }];
+    await expect(importBackup({ ...valide, entries }, base)).rejects.toThrow(/horodatage/);
+  });
+
+  it('refuse une structure qui n’est pas une liste', async () => {
+    await expect(importBackup({ ...valide, entries: { 0: {} } }, base)).rejects.toThrow(
+      /Structure/,
+    );
+  });
+
+  it('tronque une note démesurée au lieu de la stocker entière', async () => {
+    const days = [{ date: '2026-09-07', status: 'LEAVE', notes: 'x'.repeat(9000), updatedAt: 1 }];
+    await importBackup({ ...valide, days }, base);
+    expect((await base.days.get('2026-09-07'))?.notes).toHaveLength(2000);
+  });
+
+  it('ne conserve que les champs qu’elle connaît', async () => {
+    const entries = [
+      {
+        id: 'a',
+        date: '2026-09-07',
+        type: 'CLOCK_IN',
+        at: 1,
+        manual: 'oui',
+        champInvente: 'ignoré',
+      },
+    ];
+    await importBackup({ ...valide, entries }, base);
+    const [enregistre] = await base.entries.toArray();
+    expect(enregistre).not.toHaveProperty('champInvente');
+    expect(enregistre.manual).toBe(false);
+  });
+
+  it('restaure une sauvegarde légitime sans rien perdre', async () => {
+    await importBackup(
+      {
+        ...valide,
+        settings: { userName: 'Erwann' },
+        entries: [{ id: 'a', date: '2026-09-07', type: 'CLOCK_IN', at: 1, manual: true }],
+        days: [{ date: '2026-09-08', status: 'RTT', updatedAt: 2 }],
+      },
+      base,
+    );
+    expect((await loadSettings(base)).userName).toBe('Erwann');
+    expect(await base.entries.count()).toBe(1);
+    expect((await base.days.get('2026-09-08'))?.status).toBe('RTT');
+  });
+});

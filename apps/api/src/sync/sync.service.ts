@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { changedSince, mergeRecords, nextCursor } from './merge';
 import { dayDtoToRow, dayRowToDto, entryDtoToRow, entryRowToDto } from './sync.mapper';
 import type { SettingsDto, SyncPushDto, TimeEntryDto, WorkDayDto } from './sync.dto';
 import type { StoredSettings, SyncPort } from './sync.port';
+import { PayloadRejeteError, sanitizeJson } from '@workpulse/core';
 
 export interface SyncResult {
   /** État à appliquer côté client : uniquement ce qui a changé depuis son curseur. */
@@ -78,10 +79,18 @@ export class SyncService {
     incoming: SettingsDto | null,
   ): { winner: StoredSettings | null; toPersist: StoredSettings | null; conflicts: number } {
     if (incoming === null) return { winner: stored, toPersist: null, conflicts: 0 };
-    const candidate: StoredSettings = {
-      payload: incoming.payload,
-      updatedAt: new Date(incoming.updatedAt),
-    };
+
+    // Seul champ libre du protocole : il ne traverse jamais l'application
+    // sans avoir été recopié clé par clé.
+    let payload: Record<string, unknown>;
+    try {
+      payload = sanitizeJson(incoming.payload) as Record<string, unknown>;
+    } catch (erreur) {
+      if (erreur instanceof PayloadRejeteError) throw new BadRequestException(erreur.message);
+      throw erreur;
+    }
+
+    const candidate: StoredSettings = { payload, updatedAt: new Date(incoming.updatedAt) };
     if (stored !== null && stored.updatedAt.getTime() >= candidate.updatedAt.getTime()) {
       return { winner: stored, toPersist: null, conflicts: 1 };
     }

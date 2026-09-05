@@ -1,14 +1,17 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsIn,
   IsInt,
   IsISO8601,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -28,6 +31,17 @@ export const DAY_STATUSES = [
 ] as const;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Un lot de synchronisation couvre au pire quelques années de pointages ; au
+ * delà, la requête n'est plus une synchronisation mais une tentative
+ * d'épuisement. La borne est volontairement large : un utilisateur réel
+ * cumule environ mille pointages par an.
+ */
+const MAX_LOT = 5000;
+
+/** Une note reste une note : pas un vecteur pour stocker un mégaoctet. */
+const MAX_NOTE = 2000;
 
 export class TimeEntryDto {
   @ApiProperty({ format: 'uuid' })
@@ -91,9 +105,10 @@ export class WorkDayDto {
   @Max(24 * 60)
   plannedOverride?: number | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ maxLength: MAX_NOTE })
   @IsOptional()
   @IsString()
+  @MaxLength(MAX_NOTE)
   notes?: string | null;
 
   @ApiProperty()
@@ -108,6 +123,7 @@ export class WorkDayDto {
 
 export class SettingsDto {
   @ApiProperty({ description: 'Réglages sérialisés, forme définie par @workpulse/core' })
+  @IsObject()
   payload!: Record<string, unknown>;
 
   @ApiProperty()
@@ -121,14 +137,16 @@ export class SyncPushDto {
   @IsInt()
   since?: number | null;
 
-  @ApiProperty({ type: [TimeEntryDto] })
+  @ApiProperty({ type: [TimeEntryDto], maxItems: MAX_LOT })
   @IsArray()
+  @ArrayMaxSize(MAX_LOT)
   @ValidateNested({ each: true })
   @Type(() => TimeEntryDto)
   entries!: TimeEntryDto[];
 
-  @ApiProperty({ type: [WorkDayDto] })
+  @ApiProperty({ type: [WorkDayDto], maxItems: MAX_LOT })
   @IsArray()
+  @ArrayMaxSize(MAX_LOT)
   @ValidateNested({ each: true })
   @Type(() => WorkDayDto)
   days!: WorkDayDto[];
