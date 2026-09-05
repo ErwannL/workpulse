@@ -20,7 +20,7 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, extname, join, resolve } from 'node:path';
+import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -183,11 +183,26 @@ const TYPES = {
   '.webmanifest': 'application/manifest+json',
 };
 
+/** Segments qu'un chemin d'URL ne doit jamais conserver : remontées et racine. */
+const REMONTEES = /^(?:\.\.(?:[/\\]|$))+/;
+const RACINE_ABSOLUE = /^[/\\]+/;
+
+/**
+ * Sert `apps/web/dist` sur un port éphémère de la boucle locale.
+ *
+ * Le chemin demandé est normalisé puis débarrassé de ses remontées avant d'être
+ * joint à la racine : ce qui en sort est relatif à `DIST`, quoi qu'on demande.
+ * Comparer le résultat avec `startsWith(DIST)` ne suffirait pas — `dist` est
+ * aussi un préfixe de `distractor`.
+ */
 function servirDist() {
   const serveur = createServer((req, res) => {
-    const chemin = decodeURIComponent(req.url.split('?')[0]);
-    let fichier = join(DIST, chemin === '/' ? 'index.html' : chemin);
-    if (!fichier.startsWith(DIST) || !existsSync(fichier)) fichier = join(DIST, 'index.html');
+    const demande = decodeURIComponent(req.url.split('?')[0]);
+    const relatif = normalize(demande).replace(REMONTEES, '').replace(RACINE_ABSOLUE, '');
+    let fichier = join(DIST, relatif || 'index.html');
+    // Toute autre URL retombe sur l'application : le routage se fait par
+    // fragment, mais un rechargement doit servir la page malgré tout.
+    if (!existsSync(fichier)) fichier = join(DIST, 'index.html');
     res.writeHead(200, { 'content-type': TYPES[extname(fichier)] ?? 'application/octet-stream' });
     res.end(readFileSync(fichier));
   });
