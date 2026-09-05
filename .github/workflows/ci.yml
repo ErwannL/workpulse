@@ -73,7 +73,7 @@ jobs:
         run: npm run test:cov --workspace ${{ matrix.workspace }}
       - name: Publier le rapport de couverture
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: couverture-${{ matrix.paquet }}
           path: ${{ matrix.couverture }}
@@ -144,7 +144,7 @@ jobs:
         run: npm run build
       - name: Vérifier le budget de poids
         run: node scripts/check-bundle-budget.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: apps/web/dist
