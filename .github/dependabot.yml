@@ -33,6 +33,10 @@ updates:
         versions: ['>=7']
       - dependency-name: '@prisma/client'
         versions: ['>=7']
+      # L'enveloppe Android : une majeure ne se prend pas sans un essai sur un
+      # vrai téléphone, ce que la chaîne ne sait pas faire.
+      - dependency-name: '@capacitor/*'
+        versions: ['>=8']
     groups:
       # Un lot par famille : cinq pull requests séparées pour React seraient
       # ingérables, et les paquets d'une même famille bougent ensemble.
