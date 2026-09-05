@@ -11,3 +11,15 @@ graphify-out/
 .env
 .env.*
 !.env.example
+
+# Android — sorties de compilation et fichiers locaux
+apps/web/android/app/build/
+apps/web/android/build/
+apps/web/android/.gradle/
+apps/web/android/local.properties
+apps/web/android/app/src/main/assets/public/
+apps/web/android/app/release/
+apps/web/android/capacitor-cordova-android-plugins/build/
+*.apk
+*.aab
+!apps/web/android/gradle/wrapper/gradle-wrapper.jar

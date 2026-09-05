@@ -33,7 +33,8 @@
     "graph": "graphify update . && graphify export callflow-html",
     "build:core": "npm run build --workspace @workpulse/core",
     "changelog": "node scripts/build-changelog.mjs",
-    "changelog:check": "node scripts/build-changelog.mjs --check"
+    "changelog:check": "node scripts/build-changelog.mjs --check",
+    "android": "npm run build --workspace @workpulse/web && npm run android:sync --workspace @workpulse/web"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",

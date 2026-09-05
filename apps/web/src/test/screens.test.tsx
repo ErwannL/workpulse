@@ -460,7 +460,9 @@ describe('réglages — champs restants', () => {
     vi.stubGlobal('Notification', { permission: 'default', requestPermission });
 
     await renderApp('reglages');
-    await user.click(main().getByRole('button', { name: 'Autoriser' }));
+    // L'état d'autorisation est lu de façon asynchrone : le bouton n'apparaît
+    // qu'une fois la réponse connue.
+    await user.click(await main().findByRole('button', { name: 'Autoriser' }));
     await waitFor(() => expect(main().getByText('Actives')).toBeInTheDocument());
 
     vi.unstubAllGlobals();
@@ -469,7 +471,7 @@ describe('réglages — champs restants', () => {
   it('signale des notifications refusées', async () => {
     vi.stubGlobal('Notification', { permission: 'denied', requestPermission: vi.fn() });
     await renderApp('reglages');
-    expect(main().getByText(/à réactiver dans le navigateur/)).toBeInTheDocument();
+    expect(await main().findByText(/à réactiver dans les réglages/)).toBeInTheDocument();
     vi.unstubAllGlobals();
   });
 });
@@ -494,5 +496,42 @@ describe('vue semaine — statuts', () => {
     await at('10:00', '2026-07-17');
     await renderApp('semaine');
     expect(await main().findByText(/🎉 Fête nationale/)).toBeInTheDocument();
+  });
+});
+
+describe('nouveautés', () => {
+  it('affiche le journal complet depuis le panneau d’administration', async () => {
+    await renderApp('reglages');
+    await user.click(main().getByRole('button', { name: /Voir les nouveautés/ }));
+
+    const sheet = within(await screen.findByRole('dialog'));
+    expect(sheet.getByText('Nouveautés')).toBeInTheDocument();
+    expect(sheet.getByText(/Demi-journées/)).toBeInTheDocument();
+    expect(sheet.getAllByText(/^v\d/).length).toBeGreaterThan(1);
+
+    await user.click(sheet.getByRole('button', { name: /C’est noté/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('ne montre rien à la première installation, et retient la version', async () => {
+    localStorage.clear();
+    await renderApp();
+    await waitFor(() =>
+      expect(localStorage.getItem('workpulse.derniereVersionVue')).not.toBeNull(),
+    );
+    expect(screen.queryByText('Nouveautés')).not.toBeInTheDocument();
+  });
+
+  it('résume ce qui a changé après une mise à jour', async () => {
+    localStorage.setItem('workpulse.derniereVersionVue', '0.1.0');
+    await renderApp();
+
+    const sheet = within(await screen.findByRole('dialog'));
+    expect(sheet.getByText('Nouveautés')).toBeInTheDocument();
+    expect(sheet.getByText(/versions depuis ta dernière ouverture/)).toBeInTheDocument();
+
+    await user.click(sheet.getByRole('button', { name: /C’est noté/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(localStorage.getItem('workpulse.derniereVersionVue')).toBe('9.9.9');
   });
 });

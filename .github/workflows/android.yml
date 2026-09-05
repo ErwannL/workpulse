@@ -1,0 +1,89 @@
+name: Application Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/core/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/core/**'
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      apk:
+        description: "Nom de l'artefact contenant le .apk"
+        value: workpulse-apk
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    name: Compiler le .apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Compiler le domaine et l'application web
+        run: |
+          npm run build:core
+          npm run build --workspace @workpulse/web
+
+      - name: Aligner le projet Android et y copier l'application
+        run: npm run android:sync --workspace @workpulse/web
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Mettre en cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('apps/web/android/**/*.gradle*', 'apps/web/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      # Un `.apk` de débogage est signé par une clé de test : il s'installe
+      # depuis un téléphone (sources inconnues autorisées) sans exiger de
+      # secret dans le dépôt. Voir docs/android.md pour publier une version
+      # signée avec un vrai trousseau.
+      - name: Assembler le paquet
+        working-directory: apps/web/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Nommer le paquet avec la version
+        id: paquet
+        run: |
+          version=$(node -p "require('./apps/web/package.json').version")
+          source=apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          cible="workpulse-${version}.apk"
+          cp "$source" "$cible"
+          echo "chemin=$cible" >> "$GITHUB_OUTPUT"
+          echo "### Application Android" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Fichier | Taille |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | ---: |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| \`$cible\` | $(du -h "$cible" | cut -f1) |" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: workpulse-apk
+          path: ${{ steps.paquet.outputs.chemin }}
+          retention-days: 30

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { dismiss, dueAlert, emptyMemory, memoryForDay, shouldNotify, snooze } from './alerts.js';
+import {
+  dailyAlertPlan,
+  dismiss,
+  dueAlert,
+  emptyMemory,
+  memoryForDay,
+  shouldNotify,
+  snooze,
+} from './alerts.js';
 import { computePulse } from './engine.js';
 import { DEFAULT_SETTINGS, mergeSettings } from './settings.js';
 import { scheduleFromPattern } from './schedule.js';
@@ -214,5 +222,50 @@ describe('alertes et demi-journées', () => {
     const alert = dueAlert(pulseWith(settings, '12:00', entries), settings, emptyMemory(FRI));
     expect(alert?.kind).toBe('DAY_END');
     expect(alert?.emoji).toBe('🏠');
+  });
+});
+
+describe('dailyAlertPlan', () => {
+  const settings = mergeSettings(undefined);
+
+  it('programme quatre rappels sur une journée complète', () => {
+    const plan = dailyAlertPlan(scheduleFromPattern('FULL', 420), settings);
+    expect(plan.map((p) => p.kind)).toEqual(['DAY_START', 'LUNCH_START', 'LUNCH_END', 'DAY_END']);
+    expect(plan.map((p) => p.minutesOfDay)).toEqual([480, 720, 780, 1020]);
+  });
+
+  it('n’en programme que deux sur une demi-journée', () => {
+    const plan = dailyAlertPlan(scheduleFromPattern('MORNING', 420), settings);
+    expect(plan.map((p) => p.kind)).toEqual(['DAY_START', 'DAY_END']);
+    expect(plan[0].body).toContain('matinée');
+  });
+
+  it('adapte le message à un après-midi', () => {
+    const plan = dailyAlertPlan(scheduleFromPattern('AFTERNOON', 420), settings);
+    expect(plan[0].body).toContain('après-midi');
+  });
+
+  it('ne programme rien un jour non travaillé', () => {
+    expect(dailyAlertPlan(scheduleFromPattern('OFF', 420), settings)).toEqual([]);
+  });
+
+  it('ne programme rien quand les alertes sont coupées', () => {
+    const muet = { ...settings, notifications: { ...settings.notifications, enabled: false } };
+    expect(dailyAlertPlan(scheduleFromPattern('FULL', 420), muet)).toEqual([]);
+  });
+
+  it('respecte chaque interrupteur', () => {
+    const partiel = {
+      ...settings,
+      notifications: {
+        ...settings.notifications,
+        dayStart: false,
+        lunchStart: false,
+        lunchEnd: false,
+      },
+    };
+    expect(dailyAlertPlan(scheduleFromPattern('FULL', 420), partiel).map((p) => p.kind)).toEqual([
+      'DAY_END',
+    ]);
   });
 });

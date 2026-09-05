@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Alert, AlertKind, AlertMemory } from '@workpulse/core';
+import type { Alert, AlertKind, AlertMemory, Minutes } from '@workpulse/core';
 import {
+  dailyAlertPlan,
   dismiss,
   dueAlert,
   emptyMemory,
+  fromISO,
   memoryForDay,
   shouldNotify,
   snooze,
 } from '@workpulse/core';
-import type { Minutes } from '@workpulse/core';
+import { notifications } from '@/platform/notifications';
 import { useStore, type PunchResult } from './context';
 
 const STORAGE_KEY = 'workpulse.alerts';
@@ -69,22 +71,44 @@ export function useAlerts(): AlertController {
     [store.pulse, store.settings, memory, store.now],
   );
 
-  // Notification système : seulement si l'utilisateur l'a autorisée.
+  // Notification immédiate d'une alerte issue du compteur.
   useEffect(() => {
     if (!alert) return;
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     if (!shouldNotify(lastNotified.current[alert.kind], store.settings, store.now)) return;
-    lastNotified.current[alert.kind] = store.now;
-    try {
-      new Notification(`${alert.emoji} ${alert.title}`, {
-        body: alert.body,
-        tag: `workpulse-${alert.kind}`,
-        icon: './icons/icon-192.png',
-      });
-    } catch {
-      // Certaines plateformes n'autorisent les notifications que via le service worker.
-    }
+
+    let annule = false;
+    const port = notifications();
+    void port.permission().then((etat) => {
+      if (annule || etat !== 'granted') return;
+      lastNotified.current[alert.kind] = store.now;
+      void port.show(`${alert.emoji} ${alert.title}`, alert.body, `workpulse-${alert.kind}`);
+    });
+    return () => {
+      annule = true;
+    };
   }, [alert, store.now, store.settings]);
+
+  /*
+   * Rappels programmés de la journée. Ils n'existent que dans l'application
+   * installée : un navigateur ne peut rien déclencher une fois fermé. C'est la
+   * seule différence fonctionnelle entre les deux enveloppes.
+   */
+  useEffect(() => {
+    const port = notifications();
+    if (!port.canSchedule) return;
+
+    let annule = false;
+    void port.permission().then((etat) => {
+      if (annule || etat !== 'granted') return;
+      void port.schedule(
+        fromISO(store.today),
+        dailyAlertPlan(store.pulse.schedule, store.settings),
+      );
+    });
+    return () => {
+      annule = true;
+    };
+  }, [store.today, store.settings, store.pulse.schedule]);
 
   const accept = useCallback(async (): Promise<PunchResult> => {
     if (!alert) return { ok: true };
