@@ -6,13 +6,13 @@ Le dépôt porte **deux** mémoires, qui ne disent pas la même chose.
 | --- | --- | --- |
 | Contenu | pourquoi c'est ainsi | qui appelle qui |
 | Origine | écrit à la main | extrait par [graphify](https://github.com/graphify) |
-| Taille | 18 notes | ~1 340 nœuds |
+| Taille | 18 notes | ~1 500 nœuds |
 | Versionné | oui | non — régénérable |
 | Vieillit | lentement | à chaque commit |
 
 Un extracteur ne peut pas deviner qu'un chiffre exact était un mauvais message,
 ni pourquoi le serveur gagne en cas d'égalité. Inversement, personne n'écrira à
-la main les 2 117 arêtes du code.
+la main les 2 342 arêtes du code.
 
 ---
 
@@ -52,7 +52,7 @@ Ce qui apparaît dans `graphify-out/` :
 | `graph.json` | données brutes, exploitables par un agent |
 | `GRAPH_REPORT.md` | rapport en langage clair : communautés, nœuds centraux |
 | `workpulse-callflow.html` | 16 diagrammes Mermaid d'architecture et d'appels |
-| `obsidian/` | un vault de 1 455 notes, une par symbole |
+| `obsidian/` | un vault d'environ 1 500 notes, une par symbole |
 
 Le dossier est **ignoré par git** : trois mégaoctets de fichiers engendrés qui
 périment au premier commit n'ont pas leur place dans l'historique. Une commande
@@ -76,8 +76,8 @@ irriguent tout le dépôt : c'est exactement l'effet recherché par le
 [[Domaine partagé]]. Ensuite, `SyncPort` est un point de passage obligé,
 confirmant que l'abstraction de persistance joue son rôle.
 
-Le rapport signale 99 % d'arêtes extraites et 1 % inférées, ce qui donne une
-idée honnête de sa fiabilité.
+Le rapport distingue les arêtes extraites de celles qui sont inférées, ce qui
+donne une idée honnête de sa fiabilité.
 
 ---
 
@@ -108,7 +108,7 @@ Le rapport indique le commit à partir duquel il a été construit :
 
 ```
 ## Graph Freshness
-- Built from commit: `4485242b`
+- Built from commit: `4e2c584`
 ```
 
 Comparer avec `git rev-parse HEAD` dit s'il est périmé.

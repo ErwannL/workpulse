@@ -16,9 +16,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # GitHub Pages doit être activé à la main dans les réglages du dépôt
+  # (Settings → Pages → source « GitHub Actions »). Tant que ce n'est pas fait,
+  # le déploiement est ignoré plutôt que signalé en échec : c'est une décision
+  # du propriétaire du dépôt, pas une régression du code.
+  verifier:
+    name: Pages est-il activé ?
+    runs-on: ubuntu-latest
+    outputs:
+      actif: ${{ steps.pages.outputs.actif }}
+    steps:
+      - id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" > /dev/null 2>&1; then
+            echo "actif=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "actif=false" >> "$GITHUB_OUTPUT"
+            {
+              echo '### Déploiement ignoré'
+              echo ''
+              echo 'GitHub Pages n’est pas activé sur ce dépôt.'
+              echo 'Pour l’activer : Settings → Pages → source « GitHub Actions ».'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   publier:
     name: Compiler et publier la PWA
     runs-on: ubuntu-latest
+    needs: verifier
+    if: needs.verifier.outputs.actif == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deploiement.outputs.page_url }}
