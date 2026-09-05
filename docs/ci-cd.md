@@ -143,8 +143,11 @@ Un journal lisible n'est pas une coquetterie : il alimente les notes de version.
 Sur tag `v*`, l'application est compilée et publiée sur GitHub Pages. Les
 chemins sont relatifs (`base: './'`) pour fonctionner sous un sous-dossier.
 
+L'application est en ligne : **https://erwannl.github.io/workpulse/**
+
 GitHub Pages doit être activé une fois dans les réglages du dépôt
-(**Settings → Pages → source « GitHub Actions »**). Tant que ce n'est pas fait,
+(**Settings → Pages → source « GitHub Actions »**) — c'est fait. Tant que ce
+n'est pas le cas sur un fork,
 la chaîne ignore le déploiement et l'explique dans son résumé, plutôt que
 d'échouer : c'est une décision du propriétaire, pas une régression du code.
 

@@ -11,6 +11,27 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 
 ## [Non publié]
 
+### Ajouté
+
+- **L'application est en ligne : https://erwannl.github.io/workpulse/**
+  « Ajouter à l'écran d'accueil » l'installe sans rien télécharger, et sans
+  dépendre du gestionnaire de téléchargement du téléphone. Elle n'avait
+  jusqu'ici qu'un seul chemin d'installation, l'`.apk`, et il échoue sur
+  certains appareils.
+- `npm run servir:apk` sert un paquet sur le réseau local, avec
+  `Connection: close` et `Accept-Ranges: none`. Autant dépannage que
+  diagnostic : si le téléchargement aboutit ainsi et pas depuis la page des
+  versions, la cause est là.
+
+### Corrigé
+
+- La documentation parlait d'une « application déployée » sans jamais dire où,
+  et `docs/android.md` attribuait le blocage à 100 % à une connexion coupée par
+  le réseau. Mesure faite : le transfert aboutit, `Content-Length` est exact et
+  l'empreinte du fichier reçu est conforme. Le blocage est entre la fin du
+  transfert et l'écriture du fichier ; les deux causes plausibles sont
+  désormais nommées.
+
 ## [0.5.1] — 2026-09-05
 
 ### Modifié

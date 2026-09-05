@@ -104,7 +104,7 @@ tombe à zéro. Une absence déclarée n'est jamais confondue avec un oubli.
 
 ## Installer
 
-### Android
+### Android — pour les rappels application fermée
 
 Télécharger `workpulse-<version>.apk` (1,1 Mo) depuis la
 [dernière version](https://github.com/ErwannL/workpulse/releases/latest) et
@@ -115,10 +115,14 @@ C'est la seule enveloppe où les rappels partent **application fermée**.
 Si le téléchargement se fige à 100 %, c'est le gestionnaire d'Android qui attend
 une connexion déjà coupée : [trois façons d'en sortir](docs/android.md#si-le-téléchargement-se-bloque-à-100-).
 
-### Navigateur
+### Navigateur — **https://erwannl.github.io/workpulse/**
 
-Ouvrir l'application déployée, puis « Ajouter à l'écran d'accueil ». Elle
-fonctionne hors ligne.
+Ouvrir l'adresse, puis « Ajouter à l'écran d'accueil ». L'application se pose
+sur l'écran d'accueil, s'ouvre en plein écran et fonctionne hors ligne. Rien à
+télécharger, rien à autoriser.
+
+C'est le chemin le plus court, et le seul qui ne dépende pas du gestionnaire de
+téléchargement du téléphone.
 
 ### Depuis les sources
 

@@ -33,20 +33,44 @@ WorkPulse n'a pas été ouvert depuis la veille.
 À la première ouverture, accepter les notifications dans Réglages → Notifications
 si l'on veut les rappels programmés.
 
+> **Le chemin le plus court ne passe pas par ce fichier.** L'application est en
+> ligne à l'adresse **https://erwannl.github.io/workpulse/** : « Ajouter à
+> l'écran d'accueil » l'installe sans rien télécharger. L'`.apk` n'apporte que
+> les rappels lorsque l'application est fermée.
+
 ### Si le téléchargement se bloque à 100 %
 
-Le gestionnaire de téléchargement d'Android affiche parfois la taille complète
-puis tourne indéfiniment : il attend la fermeture d'une connexion que le réseau
-a coupée juste avant la fin. Le fichier reçu est complet, mais jamais remis au
-système.
+Le gestionnaire de téléchargement d'Android affiche la taille complète puis
+tourne indéfiniment, et le fichier n'apparaît jamais.
+
+Ce que le serveur envoie a été vérifié : `200`, `Content-Length` exact, ni
+`chunked` ni `gzip`, et l'empreinte du fichier reçu correspond à celle publiée.
+Le transfert aboutit. Le blocage est entre la fin du transfert et l'écriture du
+fichier.
+
+Deux causes connues, dans cet ordre de vraisemblance :
+
+1. **Le gestionnaire attend la fermeture de la connexion** au lieu de s'arrêter
+   à `Content-Length`. GitHub répond `Connection: keep-alive` et
+   `Accept-Ranges: bytes` ; un serveur qui répond `close` et `none` ne
+   déclenche pas ce comportement.
+2. **Play Protect retient le paquet en analyse** sans jamais le rendre. La
+   notification reste alors figée à 100 % quelle que soit la source.
 
 Trois issues, de la plus simple à la plus sûre :
 
-1. **Recommencer depuis un autre navigateur.** Le gestionnaire ne conserve pas
-   le téléchargement avorté.
-2. **Passer en Wi-Fi**, ou l'inverse. Le paquet fait 1,1 Mo depuis la version
-   0.5.0 — il tenait auparavant 4,7 Mo, et la fin de transfert était le moment
-   le plus fragile.
+1. **Recommencer depuis un autre navigateur** — Firefox, Samsung Internet. Ils
+   n'utilisent pas tous le gestionnaire de téléchargement du système.
+2. **Servir le fichier depuis un autre poste du réseau local**, avec les
+   en-têtes qui ne déclenchent pas le premier cas :
+
+   ```bash
+   npm run servir:apk -- workpulse-<version>.apk
+   ```
+
+   Puis ouvrir `http://<adresse-du-poste>:8765` depuis le téléphone. Si le
+   téléchargement aboutit ainsi, la cause est la première ; s'il se fige
+   encore, c'est la seconde et aucun serveur n'y peut rien.
 3. **Installer par câble**, ce qui ne dépend d'aucun réseau :
 
    ```bash
