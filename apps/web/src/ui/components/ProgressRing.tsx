@@ -49,7 +49,11 @@ export function ProgressRing({
           r={r}
           fill="none"
           strokeWidth={stroke}
-          stroke={over > 0 ? overColor : color}
+          // L'anneau garde la couleur de l'état : c'est le fin arc intérieur
+          // qui signale le dépassement. Repeindre l'anneau entier faisait dire
+          // « attention » à un écran qui annonçait par ailleurs « tu peux
+          // rentrer », pour douze minutes de plus que prévu.
+          stroke={color}
           strokeDasharray={c}
           strokeDashoffset={c * (1 - main)}
         />

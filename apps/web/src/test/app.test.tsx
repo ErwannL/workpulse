@@ -61,6 +61,16 @@ afterEach(() => {
 });
 
 describe('journée de travail', () => {
+  it('l’emoji du titre reste collé au prénom, sans orphelin en fin de ligne', async () => {
+    renderApp();
+    await ready();
+
+    // Sur 375 px de large, « Bon après-midi Erwann » remplit la ligne : avec un
+    // espace ordinaire, la main se retrouve seule sur la suivante.
+    const titre = await screen.findByRole('heading', { level: 1 });
+    expect(titre.textContent).toMatch(/Erwann\u00A0\u{1F44B}/u);
+  });
+
   it('déroule arrivée, pause et départ', async () => {
     renderApp();
     await ready();

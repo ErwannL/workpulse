@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useStore } from '@/state/context';
-import { carryInFor, summarizeWeek } from '@workpulse/core';
+import { TREND_TOLERANCE, carryInFor, summarizeWeek } from '@workpulse/core';
 import type { DaySummary } from '@workpulse/core';
 import {
   addDays,
@@ -184,7 +184,11 @@ export function WeekScreen() {
           <div className="spark spark--ruled" style={{ '--target': targetRatio } as CSSProperties}>
             {week.days.map((d) => {
               const height = maxWorked > 0 ? Math.max(3, (d.worked / maxWorked) * 100) : 3;
-              const over = d.planned > 0 && d.worked > d.planned;
+              // Le moteur tolère dix minutes autour de l'objectif avant de parler
+              // d'avance ou de retard. La barre suit la même règle : deux minutes
+              // de trop ne sont pas un dépassement, et les peindre en rouge
+              // contredirait le « objectif atteint » affiché juste au-dessus.
+              const over = d.planned > 0 && d.worked - d.planned > TREND_TOLERANCE;
               const off = d.planned === 0;
               return (
                 <div className="spark__col" key={d.date}>
