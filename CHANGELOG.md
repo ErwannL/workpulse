@@ -11,6 +11,8 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 
 ## [Non publié]
 
+## [0.4.1] — 2026-09-05
+
 ### Sécurité
 
 - **Cloisonnement des comptes.** L'identifiant d'un pointage était unique pour
@@ -117,7 +119,8 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 - Vue semaine, calendrier, statistiques et réglages.
 - Application installable (PWA), stockage local uniquement.
 
-[Non publié]: https://github.com/ErwannL/workpulse/compare/v0.4.0...HEAD
+[Non publié]: https://github.com/ErwannL/workpulse/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/ErwannL/workpulse/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/ErwannL/workpulse/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ErwannL/workpulse/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/ErwannL/workpulse/compare/v0.2.0...v0.2.1

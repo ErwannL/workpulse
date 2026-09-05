@@ -172,7 +172,7 @@ départ oublié continuait de courir, et un oubli du lundi valait cinquante
 heures le mercredi.
 
 [Stratégie de test](docs/tests.md) · [Sécurité](docs/securite.md) ·
-[Intégration continue](docs/ci-cd.md)
+[Intégration continue](docs/ci-cd.md) · [Audit complet](docs/audit-2026-09-05.md)
 
 ---
 

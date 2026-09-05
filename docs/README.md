@@ -35,6 +35,12 @@ contexte qui les a rendues nécessaires et les conséquences acceptées.
 | [0006](adr/0006-couverture-100.md) | 100 % de couverture sur le domaine et l'API |
 | [0007](adr/0007-pas-de-framework-ui.md) | Aucune bibliothèque d'interface |
 
+## Revues
+
+| Document | Répond à |
+| --- | --- |
+| [Audit du 5 septembre 2026](audit-2026-09-05.md) | ce qui a été vérifié, ce qui a été trouvé, ce qui reste ouvert |
+
 ## Exploiter
 
 | Document | Répond à |

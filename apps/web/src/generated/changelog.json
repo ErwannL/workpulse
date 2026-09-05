@@ -1,5 +1,28 @@
 [
   {
+    "version": "0.4.1",
+    "date": "2026-09-05",
+    "sections": [
+      {
+        "titre": "Sécurité",
+        "entrees": [
+          "Cloisonnement des comptes. L'identifiant d'un pointage était unique pour toute la base alors qu'il est produit par le client : un compte pouvait écraser la ligne d'un autre en devinant son identifiant. La clé primaire devient le couple (userId, id). Trouvé par les tests d'intrusion."
+        ]
+      },
+      {
+        "titre": "Corrigé",
+        "entrees": [
+          "Le paquet compilé de l'API sortait dans dist/src/main.js au lieu de dist/main.js : ni le conteneur ni la chaîne ne trouvaient le point d'entrée. Il manquait le tsconfig.build.json de NestJS.",
+          "La sonde de vie répondait sur /v1/health au lieu de /health : le HEALTHCHECK du conteneur ne pouvait jamais aboutir, et le conteneur ne se serait jamais déclaré sain.",
+          "Une erreur de validation renvoyait « Bad Request Exception » sans dire quel champ la motivait.",
+          "Le bandeau d'alerte recouvrait le bouton de pointage qu'il demandait d'actionner.",
+          "Le badge de l'anneau annonçait un retard à côté d'un message « tu peux partir ».",
+          "Les champs d'heure de l'éditeur de journée étaient tronqués."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.4.0",
     "date": "2026-09-05",
     "sections": [
