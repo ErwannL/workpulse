@@ -142,9 +142,9 @@ describeIfDb('Intrusion (e2e)', () => {
     });
 
     it('ne permet pas d’écrire sur le compte d’un autre en devinant un identifiant', async () => {
-      // Le lot ne porte aucun identifiant d'utilisateur : il est déduit du
-      // jeton. Envoyer une ligne déjà connue d'Alice crée une ligne chez Bob,
-      // elle ne modifie pas celle d'Alice.
+      // Un identifiant de pointage est produit par le client : il n'est unique
+      // que pour ce client. Bob qui envoie l'identifiant d'Alice crée une ligne
+      // chez lui — il ne touche pas à celle d'Alice.
       await api()
         .post('/v1/sync')
         .set(auth(bob))

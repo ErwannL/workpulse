@@ -44,7 +44,7 @@ CREATE TABLE "time_entries" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
-    CONSTRAINT "time_entries_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "time_entries_pkey" PRIMARY KEY ("userId","id")
 );
 
 -- CreateTable

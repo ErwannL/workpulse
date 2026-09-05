@@ -92,7 +92,7 @@ describe('PrismaSyncPort — écriture', () => {
 
     expect(db.$transaction).toHaveBeenCalledTimes(1);
     expect(db.timeEntry.upsert).toHaveBeenCalledWith({
-      where: { id: entryRow.id },
+      where: { userId_id: { userId: 'u1', id: entryRow.id } },
       create: { ...entryRow, userId: 'u1' },
       update: entryRow,
     });
@@ -108,6 +108,16 @@ describe('PrismaSyncPort — écriture', () => {
     const { db, port } = fakePrisma();
     await port.persist({ userId: 'u1', entries: [entryRow], days: [], settings: null });
     expect(db.userSettings.upsert).not.toHaveBeenCalled();
+  });
+
+  it('identifie un pointage par le couple utilisateur et identifiant', async () => {
+    const { db, port } = fakePrisma();
+    await port.persist({ userId: 'u1', entries: [entryRow], days: [], settings: null });
+    const call = vi.mocked(db.timeEntry.upsert).mock.calls[0][0] as {
+      where: { userId_id: { userId: string; id: string } };
+    };
+    // Un identifiant produit par un client n'est unique que pour ce client.
+    expect(call.where.userId_id).toEqual({ userId: 'u1', id: entryRow.id });
   });
 
   it('identifie une journée par le couple utilisateur et date', async () => {

@@ -126,7 +126,7 @@ y vient aussi de l'extérieur.
 
 ---
 
-## Deux défauts trouvés en écrivant ces tests
+## Trois défauts trouvés en écrivant ces tests, et un en les exécutant
 
 **Le contrôle de débit ne s'appliquait pas.** `ThrottlerModule.forRoot()`
 configure mais n'active rien : sans une garde globale `APP_GUARD`, aucune

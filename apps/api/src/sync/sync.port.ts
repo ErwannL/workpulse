@@ -103,8 +103,10 @@ export class PrismaSyncPort implements SyncPort {
 
     await this.db.$transaction(async (tx) => {
       for (const entry of entries) {
+        // Le couple `(userId, id)` : sans le `userId`, un compte pourrait
+        // écraser la ligne d'un autre en devinant son identifiant.
         await tx.timeEntry.upsert({
-          where: { id: entry.id },
+          where: { userId_id: { userId, id: entry.id } },
           create: { ...entry, userId },
           update: entry,
         });

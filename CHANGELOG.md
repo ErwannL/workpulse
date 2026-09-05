@@ -11,6 +11,26 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
 
 ## [Non publié]
 
+### Sécurité
+
+- **Cloisonnement des comptes.** L'identifiant d'un pointage était unique pour
+  toute la base alors qu'il est produit par le client : un compte pouvait
+  écraser la ligne d'un autre en devinant son identifiant. La clé primaire
+  devient le couple `(userId, id)`. Trouvé par les tests d'intrusion.
+
+### Corrigé
+
+- La sonde de vie répondait sur `/v1/health` au lieu de `/health` : le
+  `HEALTHCHECK` du conteneur ne pouvait jamais aboutir, et le conteneur ne se
+  serait jamais déclaré sain.
+- Une erreur de validation renvoyait « Bad Request Exception » sans dire quel
+  champ la motivait.
+- Le bandeau d'alerte recouvrait le bouton de pointage qu'il demandait
+  d'actionner.
+- Le badge de l'anneau annonçait un retard à côté d'un message « tu peux
+  partir ».
+- Les champs d'heure de l'éditeur de journée étaient tronqués.
+
 ## [0.4.0] — 2026-09-05
 
 ### Ajouté

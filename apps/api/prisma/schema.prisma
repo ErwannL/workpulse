@@ -55,8 +55,14 @@ enum EntryType {
 
 /// Un pointage. `id` est produit par le client : c'est ce qui rend la
 /// synchronisation idempotente, un même pointage rejoué ne crée pas de doublon.
+///
+/// La clé primaire est le couple `(userId, id)`, jamais `id` seul : un
+/// identifiant produit par un client n'est unique que pour ce client. Avec un
+/// `id` globalement unique, un compte pouvait écraser la ligne d'un autre en
+/// devinant son identifiant — c'est exactement ce que les tests d'intrusion
+/// ont mis en évidence.
 model TimeEntry {
-  id         String    @id @db.Uuid
+  id         String    @db.Uuid
   userId     String    @db.Uuid
   date       String    @db.VarChar(10)
   type       EntryType
@@ -69,6 +75,7 @@ model TimeEntry {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@id([userId, id])
   @@index([userId, updatedAt])
   @@index([userId, date])
   @@map("time_entries")

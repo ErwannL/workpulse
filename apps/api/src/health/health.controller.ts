@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -23,7 +23,9 @@ export function version(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 @ApiTags('health')
-@Controller('health')
+// Hors versionnement : une sonde ne change pas de contrat avec l'API, et le
+// HEALTHCHECK du conteneur interroge `/health`, pas `/v1/health`.
+@Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
