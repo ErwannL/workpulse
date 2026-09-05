@@ -38,6 +38,56 @@ let gradle = readFileSync(gradlePath, 'utf-8');
 gradle = gradle
   .replace(/versionCode\s+\d+/, `versionCode ${versionCode(version)}`)
   .replace(/versionName\s+"[^"]*"/, `versionName "${version}"`);
+
+/**
+ * Configuration de publication.
+ *
+ * Elle vit ici plutôt que dans le fichier engendré parce que `apps/web/android`
+ * est reconstructible : ce qu'on y écrit à la main disparaît à la première
+ * régénération. Le script est la seule source.
+ *
+ * Trois décisions :
+ *
+ * 1. `minifyEnabled` — R8 réduit le `classes.dex` de moitié. C'est sans risque
+ *    pour Capacitor : le module publie ses propres règles `-keep` en
+ *    `consumerProguardFiles`, donc les greffons découverts par annotation
+ *    survivent au raccourcissement.
+ * 2. La signature retombe sur la clé de débogage quand aucun trousseau n'est
+ *    fourni. Un paquet non signé ne s'installe pas du tout ; mieux vaut un
+ *    paquet signé par une clé de test, qu'Android accepte après autorisation
+ *    des sources inconnues.
+ * 3. Les variables d'environnement, plutôt qu'un fichier de propriétés : un
+ *    secret ne doit jamais pouvoir se retrouver dans un commit par distraction.
+ */
+const PUBLICATION = `    signingConfigs {
+        release {
+            def trousseau = System.getenv('WP_KEYSTORE_PATH')
+            if (trousseau) {
+                storeFile file(trousseau)
+                storePassword System.getenv('WP_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('WP_KEY_ALIAS')
+                keyPassword System.getenv('WP_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig System.getenv('WP_KEYSTORE_PATH') ? signingConfigs.release : signingConfigs.debug
+        }
+    }`;
+
+// Remplace le bloc `buildTypes` engendré par Capacitor, quel qu'il soit.
+const blocExistant =
+  /(?:^ {4}signingConfigs \{[\s\S]*?\n {4}\}\n)? {4}buildTypes \{[\s\S]*?\n {4}\}/m;
+if (!blocExistant.test(gradle)) {
+  throw new Error(
+    'build.gradle : bloc `buildTypes` introuvable, le projet Android a changé de forme.',
+  );
+}
+gradle = gradle.replace(blocExistant, PUBLICATION);
 writeFileSync(gradlePath, gradle);
 
 // --- icônes -----------------------------------------------------------------
