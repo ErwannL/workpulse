@@ -1,7 +1,18 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import { AllExceptionsFilter, type ErrorBody } from './http-exception.filter';
+import { Logger } from '@nestjs/common';
+
+// Le filtre journalise les exceptions inattendues : c'est son rôle, mais la
+// trace n'a rien à faire dans la sortie des tests.
+beforeAll(() => {
+  vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+});
+
+afterAll(() => {
+  vi.restoreAllMocks();
+});
 
 function hostWith(url?: string) {
   const json = vi.fn();
