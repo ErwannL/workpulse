@@ -34,6 +34,11 @@ ce qui a changé depuis la version précédemment installée sur l'appareil.
   paquet produit est bien signé, plutôt que de laisser le téléphone l'apprendre.
 - Les notes de version portent la taille du paquet, son empreinte SHA-256 et la
   marche à suivre quand un téléchargement se fige à 100 %.
+- **Dépendances.** Actions GitHub à jour, ESLint 10 et commitlint 21. Les lots
+  NestJS 12, Prisma 7 et outillage (TypeScript, Vite, Vitest) restent en
+  attente : ils n'en forment qu'un — NestJS 12 exige TypeScript ≥ 6 — et Vitest
+  4 change la mesure de couverture au point de révéler des chemins que la
+  version précédente comptait à tort comme couverts.
 
 ### Corrigé
 

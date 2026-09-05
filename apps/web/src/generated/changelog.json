@@ -14,7 +14,8 @@
         "entrees": [
           "Le .apk passe de 4,7 Mo à 1,1 Mo. La chaîne compilait une variante de débogage : classes.dex non minifié, et 1,6 Mo de cartes de source embarquées. Elle compile désormais la variante de publication, minifiée par R8 — sans risque pour Capacitor, qui publie ses propres règles -keep. Un téléchargement qui échouait près de la fin sur un réseau moyen a désormais quatre fois moins d'occasions de le faire.",
           "La signature de publication se branche par secrets. Si le dépôt fournit un trousseau, la chaîne l'utilise ; sinon elle retombe sur la clé de débogage. Une seule variante à maintenir. La chaîne vérifie en outre que le paquet produit est bien signé, plutôt que de laisser le téléphone l'apprendre.",
-          "Les notes de version portent la taille du paquet, son empreinte SHA-256 et la marche à suivre quand un téléchargement se fige à 100 %."
+          "Les notes de version portent la taille du paquet, son empreinte SHA-256 et la marche à suivre quand un téléchargement se fige à 100 %.",
+          "Dépendances. Actions GitHub à jour, ESLint 10 et commitlint 21. Les lots NestJS 12, Prisma 7 et outillage (TypeScript, Vite, Vitest) restent en attente : ils n'en forment qu'un — NestJS 12 exige TypeScript ≥ 6 — et Vitest 4 change la mesure de couverture au point de révéler des chemins que la version précédente comptait à tort comme couverts."
         ]
       },
       {
