@@ -12,7 +12,7 @@ jobs:
     name: Vulnérabilités et licences
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # La revue des dépendances interroge le graphe de dépendances de GitHub,
       # qui est un réglage du dépôt. Tant qu'il est éteint, l'action échoue —
