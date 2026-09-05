@@ -13,10 +13,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # La revue des dépendances interroge le graphe de dépendances de GitHub,
+      # qui est un réglage du dépôt. Tant qu'il est éteint, l'action échoue —
+      # et faisait échouer toutes les pull requests, y compris celles de
+      # Dependabot, pour une raison qui n'a rien à voir avec leur contenu.
+      #
+      # Un contrôle indisponible n'est pas un contrôle en échec. On le dit, et
+      # on explique comment l'allumer.
+      - name: Le graphe de dépendances est-il disponible ?
+        id: graphe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/compare/${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" > /dev/null 2>&1; then
+            echo "disponible=oui" >> "$GITHUB_OUTPUT"
+          else
+            echo "disponible=non" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/dependency-review-action@v4
+        if: steps.graphe.outputs.disponible == 'oui'
         with:
           fail-on-severity: moderate
           comment-summary-in-pr: on-failure
           # WorkPulse est publié sous licence MIT : les licences contaminantes
           # sont refusées à l'entrée plutôt que découvertes trop tard.
           deny-licenses: GPL-3.0, AGPL-3.0, LGPL-3.0
+
+      - name: Expliquer pourquoi la revue n'a pas eu lieu
+        if: steps.graphe.outputs.disponible == 'non'
+        run: |
+          {
+            echo "### Revue des dépendances ignorée"
+            echo
+            echo "Le graphe de dépendances n'est pas activé sur ce dépôt : l'action"
+            echo "n'a aucune donnée à comparer."
+            echo
+            echo "Pour l'activer — **Settings → Code security → Dependency graph**."
+            echo "La revue reprend d'elle-même à la pull request suivante."
+          } >> "$GITHUB_STEP_SUMMARY"
