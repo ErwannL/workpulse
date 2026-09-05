@@ -132,6 +132,29 @@ describe('moteur de décision', () => {
     expect(p.headline).toBe('Objectif de la semaine atteint');
   });
 
+  it('une dette reportée empêche de déclarer la semaine finie : il reste 1h à faire', () => {
+    // La semaine dépasse son propre objectif, mais l'utilisateur arrive avec
+    // une heure de retard héritée de la semaine précédente. Dire « tu peux
+    // partir » pendant que le bouton de départ annonce « encore 1h00 » est une
+    // contradiction : le report fait partie du solde, il doit être soldé.
+    const src = makeSource({
+      now: atTimeOn(FRI, '16:00'),
+      settings: { initialBalance: -60, trackingStart: MON },
+      entries: [
+        ...weekTo(FRI, '16:00'), // 4 × 7 h
+        entry(FRI, 'CLOCK_IN', '08:00'),
+        entry(FRI, 'BREAK_START', '12:00'),
+        entry(FRI, 'BREAK_END', '13:00'),
+      ],
+    });
+    const p = computePulse(src);
+    expect(Math.round(p.week.worked)).toBe(p.week.planned); // objectif de la semaine atteint
+    expect(Math.round(p.remainingToday)).toBe(60); // mais une heure encore due
+    expect(p.state).toBe('WORKING');
+    expect(p.canLeave).toBe(false);
+    expect(p.headline).toBe('Il te reste 1h00');
+  });
+
   it('OVERTIME_LIMIT_REACHED au-delà de +4 h', () => {
     const src = makeSource({
       now: atTimeOn(FRI, '18:30'),

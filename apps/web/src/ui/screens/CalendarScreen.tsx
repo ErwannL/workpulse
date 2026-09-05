@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '@/state/context';
-import { periodStats, summarizeDay, type DaySummary } from '@workpulse/core';
+import { TREND_TOLERANCE, periodStats, summarizeDay, type DaySummary } from '@workpulse/core';
 import type { DayStatus } from '@workpulse/core';
 import { DAY_STATUS_LABEL } from '@workpulse/core';
 import {
@@ -27,8 +27,11 @@ function dotColor(day: DaySummary): string | null {
     return 'var(--text-faint)';
   }
   if (day.worked === 0) return null;
-  if (day.planned > 0 && day.worked > day.planned + 5) return 'var(--amber)';
-  if (day.planned > 0 && day.worked < day.planned - 5) return 'var(--coral)';
+  // Même tolérance que le moteur, et non une marge inventée ici : sans quoi le
+  // calendrier signale des heures supplémentaires là où la vue semaine, elle,
+  // considère la journée à l'heure.
+  if (day.planned > 0 && day.worked - day.planned > TREND_TOLERANCE) return 'var(--amber)';
+  if (day.planned > 0 && day.planned - day.worked > TREND_TOLERANCE) return 'var(--coral)';
   return 'var(--mint)';
 }
 

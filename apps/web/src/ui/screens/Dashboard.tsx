@@ -59,7 +59,10 @@ export function Dashboard() {
       <header className="topbar">
         <div>
           <h1 className="topbar__title">
-            {greeting(store.now)} {settings.userName} 👋
+            {/* Espace insécable : sans elle, « Bon après-midi Erwann » remplit
+                la ligne et l'emoji se retrouve seul sur la suivante. */}
+            {greeting(store.now)} {settings.userName}
+            {'\u00A0👋'}
           </h1>
           <p className="topbar__sub">{formatLongDate(store.today)}</p>
         </div>

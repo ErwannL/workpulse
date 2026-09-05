@@ -146,6 +146,44 @@ describe('vue semaine', () => {
     );
   });
 
+  it('ne signale pas comme dépassement une journée finie deux minutes trop tard', async () => {
+    // Lundi pile à l'heure, mardi deux minutes de trop. Peindre le mardi en
+    // rouge à côté d'un écran qui annonce « objectif atteint » ferait douter
+    // l'utilisateur pour rien : le moteur, lui, tolère dix minutes.
+    await sevenHours(MON);
+    for (const [type, hhmm] of [
+      ['CLOCK_IN', '08:00'],
+      ['BREAK_START', '12:00'],
+      ['BREAK_END', '13:00'],
+      ['CLOCK_OUT', '16:02'],
+    ] as const) {
+      await addEntry({ date: TUE, type, at: atTimeOn(TUE, hhmm) });
+    }
+    await at('10:00', '2026-09-09');
+    await renderApp('semaine');
+
+    await screen.findByRole('heading', { name: 'Semaine 37' });
+    const barres = document.querySelectorAll('.spark__bar--over');
+    expect(barres).toHaveLength(0);
+  });
+
+  it('signale en revanche une journée nettement plus longue', async () => {
+    await sevenHours(MON);
+    for (const [type, hhmm] of [
+      ['CLOCK_IN', '08:00'],
+      ['BREAK_START', '12:00'],
+      ['BREAK_END', '13:00'],
+      ['CLOCK_OUT', '18:00'],
+    ] as const) {
+      await addEntry({ date: TUE, type, at: atTimeOn(TUE, hhmm) });
+    }
+    await at('10:00', '2026-09-09');
+    await renderApp('semaine');
+
+    await screen.findByRole('heading', { name: 'Semaine 37' });
+    expect(document.querySelectorAll('.spark__bar--over')).toHaveLength(1);
+  });
+
   it('ouvre le détail d’une journée depuis la liste', async () => {
     await sevenHours(MON);
     await at('10:00', TUE);
@@ -166,6 +204,29 @@ describe('vue semaine', () => {
 });
 
 describe('calendrier', () => {
+  it('n’annonce pas d’heures supplémentaires pour six minutes de plus', async () => {
+    // Le calendrier et la vue semaine doivent dire la même chose du même jour :
+    // c'est la tolérance du moteur qui tranche, pas une marge propre à l'écran.
+    for (const [type, hhmm] of [
+      ['CLOCK_IN', '08:00'],
+      ['BREAK_START', '12:00'],
+      ['BREAK_END', '13:00'],
+      ['CLOCK_OUT', '16:06'],
+    ] as const) {
+      await addEntry({ date: MON, type, at: atTimeOn(MON, hhmm) });
+    }
+    await at('18:00');
+    await renderApp('calendrier');
+
+    await screen.findByText('septembre');
+    const pastilles = document.querySelectorAll('.cal__dot');
+    const ambrees = [...pastilles].filter((p) =>
+      (p as HTMLElement).style.background.includes('--amber'),
+    );
+    // Seule la pastille de la légende « Heures sup » porte cette couleur.
+    expect(ambrees).toHaveLength(1);
+  });
+
   it('navigue de mois en mois', async () => {
     await renderApp('calendrier');
     expect(await screen.findByText('septembre')).toBeInTheDocument();

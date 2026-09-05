@@ -163,7 +163,12 @@ function resolveState(ctx: {
   if (phase === 'BREAK') return 'BREAK';
   if (week.overtimeExceeded) return 'OVERTIME_LIMIT_REACHED';
   if (phase === 'NOT_STARTED') return 'NOT_STARTED';
-  if (week.planned > 0 && week.worked >= week.planned) return 'WEEK_COMPLETE';
+  // Une semaine n'est finie que si elle solde aussi ce qu'elle a hérité.
+  // `remainingToday` intègre déjà le report ; sans cette condition, une semaine
+  // au-dessus de son propre objectif mais grevée d'une dette annonçait « tu
+  // peux partir » pendant que le bouton de départ réclamait encore du temps.
+  if (week.planned > 0 && week.worked >= week.planned && remainingToday <= 0)
+    return 'WEEK_COMPLETE';
   if (remainingToday <= 0) return 'DAY_COMPLETE';
   return 'WORKING';
 }
