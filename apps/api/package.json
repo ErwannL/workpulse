@@ -47,7 +47,7 @@
     "prisma": "^6.3.0",
     "supertest": "^7.0.0",
     "typescript": "^5.8.3",
-    "unplugin-swc": "^1.5.1",
+    "unplugin-swc": "^1.6.0",
     "vitest": "^3.2.0"
   }
 }
